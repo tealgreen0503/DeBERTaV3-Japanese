@@ -1,0 +1,50 @@
+[tool.poetry]
+name = "deberta-v3-japanese"
+version = "0.1.0"
+description = ""
+authors = ["KengoShimizu <tealgreen0503@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+packages = [{include = "deberta_v3_japanese"}]
+
+[tool.poetry.dependencies]
+python = "~3.10"
+datasets = "^2.14.4"
+multiprocess = "^0.70.15"
+pyyaml = "^6.0.1"
+sentencepiece = "^0.1.99"
+sudachidict-core = "^20230711"
+sudachipy = "^0.6.7"
+tensorflow = "^2.13.0"
+tensorflow-datasets = "^4.9.2"
+torch = {version = "^2.0.1+cu117", source = "torch-cu117"}
+transformers = "^4.31.0"
+accelerate = "^0.23.0"
+wandb = "^0.15.11"
+python-dotenv = "^1.0.0"
+
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.7.0"
+ruff = "^0.0.284"
+
+
+[[tool.poetry.source]]
+name = "torch-cu117"
+url = "https://download.pytorch.org/whl/cu117"
+priority = "explicit"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 119
+target-version = ['py310']
+
+[tool.ruff]
+select = ["F", "E", "W", "C", "I", "N", "UP", "RUF"]
+ignore = ["C901", "E501", "E741"]
+fixable = ["ALL"]
+line-length = 119
+target-version = "py310"
