@@ -36,7 +36,11 @@ def train_model(config: dict[str, Any]):
         )
         dataset_dict.save_to_disk("data/encoded")
 
-    model = DebertaV3ForPreTraining(config=model_config, config_generator=config_generator)
+    model = DebertaV3ForPreTraining._from_config(
+        config=model_config,
+        config_generator=config_generator,
+        torch_dtype=getattr(torch, config["model"]["torch_dtype"]),
+    )
 
     data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer)
 
