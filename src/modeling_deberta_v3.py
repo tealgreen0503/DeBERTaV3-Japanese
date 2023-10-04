@@ -4,11 +4,12 @@ from dataclasses import dataclass
 import torch
 import torch.nn as nn
 from transformers import DebertaV2ForMaskedLM, DebertaV2Model, DebertaV2PreTrainedModel, PretrainedConfig
+from transformers.modeling_outputs import ModelOutput
 from transformers.models.deberta_v2.modeling_deberta_v2 import DebertaV2PredictionHeadTransform
 
 
 @dataclass
-class DebertaV3ForPreTrainingOutput:
+class DebertaV3ForPreTrainingOutput(ModelOutput):
     loss: torch.FloatTensor | None = None
     generator_loss: torch.FloatTensor | None = None
     discriminator_loss: torch.FloatTensor | None = None
@@ -18,7 +19,7 @@ class DebertaV3ForPreTrainingOutput:
 
 
 @dataclass
-class DebertaV3ForReplacedTokenDetectionOutput:
+class DebertaV3ForReplacedTokenDetectionOutput(ModelOutput):
     loss: torch.FloatTensor | None = None
     logits: torch.FloatTensor = None
     hidden_states: tuple[torch.FloatTensor] | None = None
@@ -114,7 +115,7 @@ class DebertaV3ForPreTraining(DebertaV2PreTrainedModel):
         )
 
         with torch.no_grad():
-            masked_positions = input_ids == self.config.mask_token_id
+            masked_positions = labels != -100
             generator_logits = generator_outputs.logits if return_dict else generator_outputs[1]
             generator_predictions = torch.argmax(generator_logits[masked_positions], dim=-1)
 
