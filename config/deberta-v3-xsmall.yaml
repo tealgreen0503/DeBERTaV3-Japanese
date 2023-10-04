@@ -62,6 +62,7 @@ model:
     num_hidden_layers: 12
     type_vocab_size: 0
     vocab_size: 32000
+    torch_dtype: bfloat16
   generator:
     attention_probs_dropout_prob: 0.1
     hidden_act: gelu
@@ -83,6 +84,7 @@ model:
     num_hidden_layers: 6
     type_vocab_size: 0
     vocab_size: 32001
+    torch_dtype: bfloat16
 
 trainer:
   evaluation_strategy: steps
