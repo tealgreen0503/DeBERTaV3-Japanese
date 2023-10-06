@@ -22,15 +22,6 @@ if __name__ == "__main__":
     with (Path("config") / f"{args.model_name}.yaml").open(mode="r") as f:
         config = yaml.safe_load(f)
 
-    if not any([args.pre_tokenize, args.train_tokenizer, args.train_model]):
-        raise ValueError(
-            "Please specify at least one of the following arguments: "
-            "--pre_tokenize, --train_tokenizer, --train_model"
-        )
-
-    if args.pre_tokenize:
-        save_pre_tokenized_text(config)
-    if args.train_tokenizer:
-        train_tokenizer(config)
-    if args.train_model:
-        train_model(config)
+    save_pre_tokenized_text(config)
+    train_tokenizer(config)
+    train_model(config)
