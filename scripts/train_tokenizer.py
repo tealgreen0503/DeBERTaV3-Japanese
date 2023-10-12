@@ -109,9 +109,9 @@ def get_post_processor():
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model_name", type=str, required=True)
+    parser.add_argument("--config_file", type=str, required=True)
     args = parser.parse_args()
-    with (Path("config") / f"{args.model_name}.yaml").open(mode="r") as f:
+    with Path(args.config_file).open(mode="r") as f:
         config = yaml.safe_load(f)
 
     train_tokenizer(config)

@@ -5,6 +5,7 @@ import re
 from collections.abc import Generator
 from pathlib import Path
 
+import datasets
 import sudachipy
 import tokenizers
 import yaml
@@ -72,10 +73,13 @@ def pre_tokenize(text, tokenizer):
 
 
 def main():
+    # Use save_to_disk() and load_from_disk() instead of using the cache
+    datasets.disable_caching()
+
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model_name", type=str, required=True)
+    parser.add_argument("--config_file", type=str, required=True)
     args = parser.parse_args()
-    with (Path("config") / f"{args.model_name}.yaml").open(mode="r") as f:
+    with Path(args.config_file).open(mode="r") as f:
         config = yaml.safe_load(f)
 
     save_pre_tokenized_text(config)

@@ -7,6 +7,7 @@ from typing import Any
 import datasets
 import torch
 import yaml
+from dotenv import load_dotenv
 from transformers import (
     DataCollatorForLanguageModeling,
     DebertaV2Config,
@@ -20,6 +21,7 @@ from src.modeling_deberta_v3 import DebertaV3ForPreTraining
 
 
 def train_model(config: dict[str, Any]):
+    load_dotenv()
     model_config = DebertaV2Config(**config["model"]["discriminator"])
     config_generator = DebertaV2Config(**config["model"]["generator"])
 
@@ -64,10 +66,13 @@ def train_model(config: dict[str, Any]):
 
 
 def main():
+    # Use save_to_disk() and load_from_disk() instead of using the cache
+    datasets.disable_caching()
+
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model_name", type=str, required=True)
+    parser.add_argument("--config_file", type=str, required=True)
     args = parser.parse_args()
-    with (Path("config") / f"{args.model_name}.yaml").open(mode="r") as f:
+    with Path(args.config_file).open(mode="r") as f:
         config = yaml.safe_load(f)
 
     train_model(config)

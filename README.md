@@ -10,13 +10,13 @@ pip install multiprocess==0.70.15  # cf. https://github.com/huggingface/datasets
 ```
 ### Training
 ```sh
-python -m run --model_name deberta-v3-xsmall
+./run.sh config/deberta-v3-xsmall.yaml
 ```
 or
 ```sh
-python -m pre_tokenize --model_name deberta-v3-xsmall
-python -m train_tokenizer --model_name deberta-v3-xsmall
-python -m train_model --model_name deberta-v3-xsmall
+python -m pre_tokenize --config_file config/deberta-v3-xsmall.yaml
+python -m train_tokenizer --config_file config/deberta-v3-xsmall.yaml
+python -m train_model --config_file config/deberta-v3-xsmall.yaml
 ```
 
 ## Reference
