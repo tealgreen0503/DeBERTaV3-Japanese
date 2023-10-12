@@ -119,4 +119,4 @@ trainer:
   group_by_length: false
   report_to: wandb
   full_determinism: false
-  torch_compile: false
+  torch_compile: true
