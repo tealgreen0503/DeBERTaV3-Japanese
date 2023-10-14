@@ -15,7 +15,7 @@ from tqdm import tqdm
 from src.data import download_dataset
 
 
-def save_pre_tokenized_text(config: dict):
+def save_pre_tokenized_text(config: dict) -> None:
     tokenizer = sudachipy.Dictionary().create()
     dataset_dict = download_dataset(config["dataset_names"], seed=config["seed"])
     os.makedirs("data/pre_tokenized", exist_ok=True)
@@ -28,7 +28,7 @@ def save_pre_tokenized_text(config: dict):
     gc.collect()
 
 
-def preprocess_text(text: str):
+def preprocess_text(text: str) -> str:
     text = text.replace("_NEWLINE_", "")
     text = tokenizers.normalizers.Sequence(
         [
@@ -62,7 +62,7 @@ def split_long_sentence(text: str) -> Generator[str, None, None]:
             end_index = start_index + max_length
 
 
-def pre_tokenize(text, tokenizer):
+def pre_tokenize(text: str, tokenizer: sudachipy.Tokenizer) -> str:
     """split by sudachi and space"""
     return "<|dlm|>".join(
         [
@@ -72,7 +72,7 @@ def pre_tokenize(text, tokenizer):
     ).lower()
 
 
-def main():
+def main() -> None:
     # Use save_to_disk() and load_from_disk() instead of using the cache
     datasets.disable_caching()
 

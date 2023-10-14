@@ -9,11 +9,12 @@ import sentencepiece as spm
 import yaml
 from tokenizers import Regex, Tokenizer, decoders, normalizers, processors
 from tokenizers.models import BPE, Unigram
-from transformers import DebertaV2TokenizerFast
+from transformers import DebertaV2TokenizerFast, PreTrainedTokenizerFast
 from transformers.convert_slow_tokenizer import SentencePieceExtractor, import_protobuf
+from transformers.utils.sentencepiece_model_pb2 import ModelProto
 
 
-def train_tokenizer(config: dict[str, Any]):
+def train_tokenizer(config: dict[str, Any]) -> None:
     spm_model_prefix = "models/sentencepiece/spm"
     os.makedirs(Path(spm_model_prefix).parent, exist_ok=True)
     spm_kwargs = convert_spm_kwargs(
@@ -27,7 +28,7 @@ def train_tokenizer(config: dict[str, Any]):
     shutil.copy(spm_model_prefix + ".vocab", Path("models") / config["model_name"])
 
 
-def convert_spm_kwargs(**kwargs) -> str:
+def convert_spm_kwargs(**kwargs: Any) -> str:
     kwarg_texts: list[str] = []
     for key, value in kwargs.items():
         if isinstance(value, bool):
@@ -37,7 +38,7 @@ def convert_spm_kwargs(**kwargs) -> str:
     return "--" + " --".join(kwarg_texts)
 
 
-def create_tokenizer(vocab_file: str, **kwargs):
+def create_tokenizer(vocab_file: str, **kwargs: Any) -> PreTrainedTokenizerFast:
     # from transformers.utils import sentencepiece_model_pb2 as model_pb2
     model_pb2 = import_protobuf()
 
@@ -61,7 +62,7 @@ def create_tokenizer(vocab_file: str, **kwargs):
     return DebertaV2TokenizerFast(tokenizer_object=tokenizer, **kwargs)
 
 
-def get_backend_tokenizer(proto, vocab_file):
+def get_backend_tokenizer(proto: ModelProto, vocab_file: str) -> Tokenizer:
     model_type = proto.trainer_spec.model_type
     vocab_scores = [(piece.piece, piece.score) for piece in proto.pieces]
     unk_id = proto.trainer_spec.unk_id
@@ -80,7 +81,7 @@ def get_backend_tokenizer(proto, vocab_file):
     return tokenizer
 
 
-def get_normalizer(proto):
+def get_normalizer(proto: ModelProto) -> normalizers.Normalizer:
     precompiled_charsmap = proto.normalizer_spec.precompiled_charsmap
     normalizer_list = [
         normalizers.Strip(),
@@ -95,11 +96,11 @@ def get_normalizer(proto):
         return normalizers.Sequence([*normalizer_list, normalizers.Precompiled(precompiled_charsmap)])
 
 
-def get_docoder():
+def get_docoder() -> decoders.Decoder:
     return decoders.Metaspace(replacement="▁", add_prefix_space=False)
 
 
-def get_post_processor():
+def get_post_processor() -> processors.PostProcessor:
     return processors.TemplateProcessing(
         single="[CLS]:0 $A:0 [SEP]:0",
         pair="[CLS]:0 $A:0 [SEP]:0 $B:1 [SEP]:1",
@@ -107,7 +108,7 @@ def get_post_processor():
     )
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config_file", type=str, required=True)
     args = parser.parse_args()

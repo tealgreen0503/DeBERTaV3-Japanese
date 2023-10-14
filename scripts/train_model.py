@@ -20,7 +20,7 @@ from src.data import download_dataset
 from src.modeling_deberta_v3 import DebertaV3ForPreTraining
 
 
-def train_model(config: dict[str, Any], local_rank: int = -1):
+def train_model(config: dict[str, Any], local_rank: int = -1) -> None:
     load_dotenv()
     config_discriminator = DebertaV2Config(**config["model"]["discriminator"])
     config_generator = DebertaV2Config(**config["model"]["generator"])
@@ -65,7 +65,7 @@ def train_model(config: dict[str, Any], local_rank: int = -1):
     trainer.save_model(save_path)
 
 
-def main():
+def main() -> None:
     # Use save_to_disk() and load_from_disk() instead of using the cache
     datasets.disable_caching()
 

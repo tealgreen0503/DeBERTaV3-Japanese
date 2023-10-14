@@ -26,7 +26,7 @@ def download_dataset(dataset_names: list[Literal["wiki40b", "cc100", "oscar"]], 
 
 
 def download_wiki40b() -> DatasetDict:
-    def tf_wiki40b_generator(split: str) -> Generator[str, None, None]:
+    def tf_wiki40b_generator(split: str) -> Generator[dict[str, str], None, None]:
         import tensorflow_datasets as tfds
 
         tf_dataset = tfds.load("wiki40b/ja", split=split)

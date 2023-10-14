@@ -30,7 +30,9 @@ priority = "explicit"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.9.1"
+mypy = "^1.6.0"
 ruff = "^0.0.292"
+types-pyyaml = "^6.0.12.12"
 
 [build-system]
 requires = ["poetry-core"]
@@ -46,3 +48,10 @@ ignore = ["C901", "E501", "E741"]
 fixable = ["ALL"]
 line-length = 119
 target-version = "py311"
+
+[tool.mypy]
+python_version = "3.11"
+check_untyped_defs = true
+disallow_untyped_defs = true
+ignore_missing_imports = true
+strict_equality = true

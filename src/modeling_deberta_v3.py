@@ -1,5 +1,6 @@
 import os
 from dataclasses import dataclass
+from typing import Any
 
 import torch
 import torch.nn as nn
@@ -13,7 +14,7 @@ class DebertaV3ForPreTrainingOutput(ModelOutput):
     loss: torch.FloatTensor | None = None
     generator_loss: torch.FloatTensor | None = None
     discriminator_loss: torch.FloatTensor | None = None
-    logits: torch.FloatTensor = None
+    logits: torch.FloatTensor | None = None
     hidden_states: tuple[torch.FloatTensor] | None = None
     attentions: tuple[torch.FloatTensor] | None = None
 
@@ -21,7 +22,7 @@ class DebertaV3ForPreTrainingOutput(ModelOutput):
 @dataclass
 class DebertaV3ForReplacedTokenDetectionOutput(ModelOutput):
     loss: torch.FloatTensor | None = None
-    logits: torch.FloatTensor = None
+    logits: torch.FloatTensor | None = None
     hidden_states: tuple[torch.FloatTensor] | None = None
     attentions: tuple[torch.FloatTensor] | None = None
 
@@ -41,14 +42,14 @@ class DebertaV3ForPreTraining(DebertaV2PreTrainedModel):
         # Initialize weights and apply final processing
         self.post_init()
 
-    def _init_weights(self, module):
+    def _init_weights(self, module: nn.Module) -> None:
         super()._init_weights(module)
         self.init_discriminator_embeddings()
 
-    def init_discriminator_embeddings(self):
+    def init_discriminator_embeddings(self) -> None:
         """initialize discriminator's embedding for Gradient-Disentangled Embedding Sharing"""
 
-        def set_embeddings_weight_delta(embeddings: nn.Embedding):
+        def set_embeddings_weight_delta(embeddings: nn.Embedding) -> None:
             embeddings.register_parameter("weight_delta", nn.Parameter(torch.zeros_like(embeddings.weight)))
             delattr(embeddings, "weight")
 
@@ -58,19 +59,19 @@ class DebertaV3ForPreTraining(DebertaV2PreTrainedModel):
         if self.config.type_vocab_size > 0:
             set_embeddings_weight_delta(self.discriminator.deberta.embeddings.token_type_embeddings)
 
-    def register_discriminator_forward_pre_hook(self):
+    def register_discriminator_forward_pre_hook(self) -> None:
         """register forward pre hook to set discriminator's embedding with for Gradient-Disentangled Embedding Sharing"""
 
         def set_embeddings_weight_added_delta_as_buffer(
             discriminator_embeddings: nn.Embedding, generator_embeddings_weight: nn.Parameter
-        ):
+        ) -> None:
             if hasattr(discriminator_embeddings, "weight"):
                 delattr(discriminator_embeddings, "weight")
             discriminator_embeddings.register_buffer(
                 "weight", generator_embeddings_weight.detach() + discriminator_embeddings.weight_delta
             )
 
-        def forward_pre_hook(module, *inputs):
+        def forward_pre_hook(module: nn.Module, *inputs: list[torch.Tensor]) -> None:
             set_embeddings_weight_added_delta_as_buffer(
                 self.discriminator.deberta.embeddings.word_embeddings,
                 self.generator.deberta.embeddings.word_embeddings.weight[:-1],
@@ -90,7 +91,7 @@ class DebertaV3ForPreTraining(DebertaV2PreTrainedModel):
 
     def forward(
         self,
-        input_ids: torch.Tensor | None = None,
+        input_ids: torch.Tensor,
         attention_mask: torch.Tensor | None = None,
         token_type_ids: torch.Tensor | None = None,
         position_ids: torch.Tensor | None = None,
@@ -162,16 +163,16 @@ class DebertaV3ForPreTraining(DebertaV2PreTrainedModel):
             attentions=discriminator_outputs.attentions,
         )
 
-    def save_pretrained(self, save_directory: str | os.PathLike, **kwargs):
+    def save_pretrained(self, save_directory: str | os.PathLike, **kwargs: Any) -> None:
         self.generator.save_pretrained(os.path.join(save_directory, "generator"), **kwargs)
         self.save_pretrained_discriminator(save_directory, **kwargs)
 
-    def save_pretrained_discriminator(self, save_directory: str | os.PathLike, **kwargs):
+    def save_pretrained_discriminator(self, save_directory: str | os.PathLike, **kwargs: dict[str, Any]) -> None:
         """save discriminator's weights with for Gradient-Disentangled Embedding Sharing"""
 
         def set_embeddings_weight_added_delta_as_parameter(
             discriminator_embeddings: nn.Embedding, generator_embeddings_weight: nn.Parameter
-        ):
+        ) -> None:
             if hasattr(discriminator_embeddings, "weight"):
                 delattr(discriminator_embeddings, "weight")
             discriminator_embeddings.register_parameter(
@@ -205,7 +206,7 @@ class DebertaV3ForPreTraining(DebertaV2PreTrainedModel):
 
 
 class DebertaV3ForReplacedTokenDetection(DebertaV2PreTrainedModel):
-    def __init__(self, config):
+    def __init__(self, config: PretrainedConfig) -> None:
         super().__init__(config)
 
         self.deberta = DebertaV2Model(config)
@@ -265,12 +266,12 @@ class DebertaV3ForReplacedTokenDetection(DebertaV2PreTrainedModel):
 
 
 class DebertaV3RTDHead(nn.Module):
-    def __init__(self, config):
+    def __init__(self, config: PretrainedConfig) -> None:
         super().__init__()
         self.transform = DebertaV2PredictionHeadTransform(config)
         self.classifier = nn.Linear(config.hidden_size, 1)
 
-    def forward(self, hidden_states):
+    def forward(self, hidden_states: torch.FloatTensor) -> torch.FloatTensor:
         hidden_states = self.transform(hidden_states)
         logits = self.classifier(hidden_states).squeeze(-1)
         return logits
