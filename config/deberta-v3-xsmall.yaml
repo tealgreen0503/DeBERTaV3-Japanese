@@ -115,6 +115,7 @@ trainer:
   load_best_model_at_end: true
   metric_for_best_model: loss
   greater_is_better: false
+  deepspeed: config/ds_config.json
   optim: adamw_torch
   group_by_length: false
   report_to: wandb

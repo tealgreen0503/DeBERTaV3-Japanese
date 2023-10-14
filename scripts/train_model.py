@@ -20,7 +20,7 @@ from src.data import download_dataset
 from src.modeling_deberta_v3 import DebertaV3ForPreTraining
 
 
-def train_model(config: dict[str, Any]):
+def train_model(config: dict[str, Any], local_rank: int = -1):
     load_dotenv()
     model_config = DebertaV2Config(**config["model"]["discriminator"])
     config_generator = DebertaV2Config(**config["model"]["generator"])
@@ -47,7 +47,7 @@ def train_model(config: dict[str, Any]):
     data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer)
 
     tmp_dir = Path("tmp")
-    training_args = TrainingArguments(output_dir=tmp_dir, **config["trainer"])
+    training_args = TrainingArguments(output_dir=tmp_dir, local_rank=local_rank, **config["trainer"])
     trainer = Trainer(
         model=model,
         args=training_args,
@@ -71,11 +71,12 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--config_file", type=str, required=True)
+    parser.add_argument("--local_rank", type=int, default=-1)
     args = parser.parse_args()
     with Path(args.config_file).open(mode="r") as f:
         config = yaml.safe_load(f)
 
-    train_model(config)
+    train_model(config, local_rank=args.local_rank)
 
 
 if __name__ == "__main__":
