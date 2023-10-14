@@ -22,7 +22,7 @@ from src.modeling_deberta_v3 import DebertaV3ForPreTraining
 
 def train_model(config: dict[str, Any], local_rank: int = -1):
     load_dotenv()
-    model_config = DebertaV2Config(**config["model"]["discriminator"])
+    config_discriminator = DebertaV2Config(**config["model"]["discriminator"])
     config_generator = DebertaV2Config(**config["model"]["generator"])
 
     tokenizer = DebertaV2TokenizerFast.from_pretrained(Path("models") / config["model_name"])
@@ -39,7 +39,7 @@ def train_model(config: dict[str, Any], local_rank: int = -1):
         dataset_dict.save_to_disk("data/encoded")
 
     model = DebertaV3ForPreTraining._from_config(
-        config=model_config,
+        config=config_discriminator,
         config_generator=config_generator,
         torch_dtype=getattr(torch, config["model"]["torch_dtype"]),
     )
