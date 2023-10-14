@@ -4,6 +4,7 @@ import os
 import re
 from collections.abc import Generator
 from pathlib import Path
+from typing import Any
 
 import datasets
 import sudachipy
@@ -15,7 +16,7 @@ from tqdm import tqdm
 from src.data import download_dataset
 
 
-def save_pre_tokenized_text(config: dict) -> None:
+def save_pre_tokenized_text(config: dict[str, Any]) -> None:
     tokenizer = sudachipy.Dictionary().create()
     dataset_dict = download_dataset(config["dataset_names"], seed=config["seed"])
     os.makedirs("data/pre_tokenized", exist_ok=True)
