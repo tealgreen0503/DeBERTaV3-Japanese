@@ -3,7 +3,7 @@ model_name: &model_name deberta-v3-xsmall-japanese
 seed: &seed 42
 
 dataset_names:
-  - wiki40b/ja
+  - wikipedia
 
 sentencepiece:
   model_type: bpe
@@ -58,7 +58,6 @@ model:
     max_relative_positions: -1
     position_biased_input: false
     num_attention_heads: 6
-    attention_head_size: 64
     num_hidden_layers: 12
     type_vocab_size: 0
     vocab_size: 32000
@@ -79,7 +78,6 @@ model:
     max_relative_positions: -1
     position_biased_input: false
     num_attention_heads: 6
-    attention_head_size: 64
     num_hidden_layers: 6
     type_vocab_size: 0
     vocab_size: 32001
@@ -87,9 +85,9 @@ model:
 
 trainer:
   evaluation_strategy: steps
-  per_device_train_batch_size: 32
-  per_device_eval_batch_size: 32
-  gradient_accumulation_steps: 256
+  per_device_train_batch_size: 16
+  per_device_eval_batch_size: 16
+  gradient_accumulation_steps: 10
   learning_rate: 6.0e-4
   weight_decay: 0.01
   adam_beta1: 0.9
