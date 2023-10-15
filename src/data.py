@@ -7,8 +7,10 @@ from datasets import Dataset, DatasetDict, load_dataset
 
 
 def download_dataset(
-    dataset_names: list[Literal["wikipedia", "wiki40b", "cc100", "oscar"]], seed: int = 42
+    dataset_names: list[Literal["wikipedia", "wiki40b", "cc100", "oscar"]], unique: bool = False, seed: int = 42
 ) -> DatasetDict:
+    if unique:
+        dataset_names = list(set(dataset_names))
     dataset_dicts: list[DatasetDict] = []
     for dataset_name in dataset_names:
         match dataset_name:

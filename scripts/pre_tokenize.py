@@ -18,7 +18,7 @@ from src.data import download_dataset
 
 def save_pre_tokenized_text(config: dict[str, Any]) -> None:
     tokenizer = sudachipy.Dictionary().create()
-    dataset_dict = download_dataset(config["dataset_names"], seed=config["seed"])
+    dataset_dict = download_dataset(config["dataset_names"], unique=True, seed=config["seed"])
     os.makedirs("data/pre_tokenized", exist_ok=True)
     with open("data/pre_tokenized/train.txt", "w") as f:
         for example in tqdm(dataset_dict["train"]):
