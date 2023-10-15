@@ -6,22 +6,43 @@ import datasets
 from datasets import Dataset, DatasetDict, load_dataset
 
 
-def download_dataset(dataset_names: list[Literal["wiki40b", "cc100", "oscar"]], seed: int = 42) -> DatasetDict:
+def download_dataset(
+    dataset_names: list[Literal["wikipedia", "wiki40b", "cc100", "oscar"]], seed: int = 42
+) -> DatasetDict:
     dataset_dicts: list[DatasetDict] = []
     for dataset_name in dataset_names:
-        if "wiki40b" in dataset_name:
-            dataset_dicts.append(download_wiki40b())
-        elif "cc100" in dataset_name:
-            dataset_dicts.append(download_cc100(seed=seed))
-        elif "oscar" in dataset_name:
-            dataset_dicts.append(download_oscar(seed=seed))
-        else:
-            raise Exception(f"Unsupported dataset: {dataset_name}")
+        match dataset_name:
+            case "wikipedia":
+                dataset_dicts.append(download_wikipedia(seed))
+            case "wiki40b":
+                dataset_dicts.append(download_wiki40b())
+            case "cc100":
+                dataset_dicts.append(download_cc100(seed))
+            case "oscar":
+                dataset_dicts.append(download_oscar(seed))
+            case _:
+                raise Exception(f"Unsupported dataset: {dataset_name}")
     dataset_dict = DatasetDict()
     for split in ["train", "validation", "test"]:
         dataset_dict[split] = datasets.concatenate_datasets(
             [dataset_dict[split] for dataset_dict in dataset_dicts], split=datasets.Split(split)
         )
+    return dataset_dict
+
+
+def download_wikipedia(seed: int) -> DatasetDict:
+    if os.path.isdir("data/raw/wikipedia"):
+        return datasets.load_from_disk("data/raw/wikipedia")
+    else:
+        dataset = load_dataset("wikipedia", language="ja", date="20231001", beam_runner="DirectRunner").remove_columns(
+            ["id", "url", "title"]
+        )
+        dataset_dict = DatasetDict()
+        dataset_dict["train"], valid_test_dataset = dataset.train_test_split(test_size=0.1, seed=seed)
+        dataset_dict["validation"], dataset_dict["test"] = valid_test_dataset.train_test_split(
+            test_size=0.5, seed=seed
+        )
+        dataset_dict.save_to_disk("data/raw/wikipedia")
     return dataset_dict
 
 
