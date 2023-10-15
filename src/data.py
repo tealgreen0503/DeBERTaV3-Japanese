@@ -95,7 +95,11 @@ def download_oscar(seed: int) -> DatasetDict:
     if os.path.isdir("data/raw/oscar"):
         return datasets.load_from_disk("data/raw/oscar")
     else:
-        dataset = load_dataset("oscar-corpus/OSCAR-2301", language="ja").remove_columns(["id", "meta"])
+        dataset = load_dataset("oscar-corpus/OSCAR-2301", language="ja")
+        dataset = dataset.filter(
+            lambda x: len(set(x["meta"]["quality_warnings"]) & set("header", "footer", "noisy")) == 0
+        )
+        dataset = dataset.remove_columns(["id", "meta"])
         dataset_dict = DatasetDict()
         dataset_dict["train"], valid_test_dataset = dataset.train_test_split(test_size=0.1, seed=seed)
         dataset_dict["validation"], dataset_dict["test"] = valid_test_dataset.train_test_split(
