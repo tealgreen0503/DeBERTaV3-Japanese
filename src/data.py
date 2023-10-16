@@ -99,7 +99,7 @@ def download_oscar(seed: int) -> DatasetDict:
     else:
         dataset = load_dataset("oscar-corpus/OSCAR-2301", language="ja")
         dataset = dataset.filter(
-            lambda x: len(set(x["meta"]["quality_warnings"]) & set("header", "footer", "noisy")) == 0
+            lambda x: len(set(x["meta"]["quality_warnings"]) & {"header", "footer", "noisy"}) == 0
         )
         dataset = dataset.remove_columns(["id", "meta"])
         dataset_dict = DatasetDict()
