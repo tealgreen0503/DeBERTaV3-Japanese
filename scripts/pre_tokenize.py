@@ -30,7 +30,6 @@ def save_pre_tokenized_text(config: dict[str, Any]) -> None:
 
 
 def preprocess_text(text: str) -> str:
-    text = text.replace("_NEWLINE_", "")
     text = tokenizers.normalizers.Sequence(
         [
             tokenizers.normalizers.Strip(),

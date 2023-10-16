@@ -65,7 +65,7 @@ def download_wiki40b() -> DatasetDict:
                         is_paragraph = True
                     case _:
                         if is_paragraph and len(line) > 0:
-                            yield {"text": line}
+                            yield {"text": line.replace("_NEWLINE_", "")}
 
     if os.path.isdir("data/raw/wiki40b"):
         return datasets.load_from_disk("data/raw/wiki40b")
