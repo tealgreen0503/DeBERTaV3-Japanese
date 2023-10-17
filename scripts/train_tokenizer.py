@@ -13,12 +13,17 @@ from transformers import DebertaV2TokenizerFast, PreTrainedTokenizerFast
 from transformers.convert_slow_tokenizer import SentencePieceExtractor, import_protobuf
 from transformers.utils.sentencepiece_model_pb2 import ModelProto
 
+from scripts.pre_tokenize import DELIMITER
+
 
 def train_tokenizer(config: dict[str, Any]) -> None:
     spm_model_prefix = "models/sentencepiece/spm"
     os.makedirs(Path(spm_model_prefix).parent, exist_ok=True)
     spm_kwargs = convert_spm_kwargs(
-        input="data/pre_tokenized/train.txt", model_prefix=spm_model_prefix, **config["sentencepiece"]
+        input="data/pre_tokenized/train.txt",
+        model_prefix=spm_model_prefix,
+        pretokenization_delimiter=DELIMITER,
+        **config["sentencepiece"],
     )
     spm.SentencePieceTrainer.train(spm_kwargs)
 

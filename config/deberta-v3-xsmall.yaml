@@ -15,7 +15,6 @@ sentencepiece:
   split_by_number: false
   split_by_whitespace: false
   split_digits: false
-  pretokenization_delimiter: <|dlm|>
   allow_whitespace_only_pieces: true
   normalization_rule_name: nmt_nfkc
   add_dummy_prefix: false

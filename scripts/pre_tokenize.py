@@ -15,6 +15,8 @@ from tqdm import tqdm
 
 from src.data import download_dataset
 
+DELIMITER = "<dlm>"
+
 
 def save_pre_tokenized_text(config: dict[str, Any]) -> None:
     tokenizer = sudachipy.Dictionary().create()
@@ -34,17 +36,17 @@ def save_pre_tokenized_text(config: dict[str, Any]) -> None:
                 pre_tokenized_sentence_bytes = len(pre_tokenized_sentence.encode())
                 if pre_tokenized_text_bytes + pre_tokenized_sentence_bytes > max_bytes:
                     if pre_tokenized_text != "":
-                        f.write(pre_tokenized_text.removesuffix("<|dlm|>") + "\n")
+                        f.write(pre_tokenized_text.removesuffix(DELIMITER) + "\n")
                         if pre_tokenized_sentence_bytes > max_bytes:
                             pre_tokenized_text = ""
                             pre_tokenized_text_bytes = 0
                         else:
-                            pre_tokenized_text = pre_tokenized_sentence + "<|dlm|>"
+                            pre_tokenized_text = pre_tokenized_sentence + DELIMITER
                             pre_tokenized_text_bytes = pre_tokenized_sentence_bytes
                     else:
                         pass
                 else:
-                    pre_tokenized_text += pre_tokenized_sentence + "<|dlm|>"
+                    pre_tokenized_text += pre_tokenized_sentence + DELIMITER
                     pre_tokenized_text_bytes += pre_tokenized_sentence_bytes
             if pre_tokenized_text != "":
                 f.write(pre_tokenized_text + "\n")
@@ -66,9 +68,9 @@ def preprocess_text(text: str) -> str:
 
 def pre_tokenize(text: str, tokenizer: sudachipy.Tokenizer) -> str:
     """split by sudachi and space"""
-    return "<|dlm|>".join(
+    return DELIMITER.join(
         [
-            "<|dlm|>".join(re.split("( )", m.surface())).removeprefix("<|dlm|>").removesuffix("<|dlm|>")
+            DELIMITER.join(re.split("( )", m.surface())).removeprefix(DELIMITER).removesuffix(DELIMITER)
             for m in tokenizer.tokenize(text, mode=sudachipy.SplitMode.A)
         ]
     ).lower()
