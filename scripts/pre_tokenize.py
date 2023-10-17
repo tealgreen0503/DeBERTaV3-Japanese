@@ -2,11 +2,11 @@ import argparse
 import gc
 import os
 import re
-from collections.abc import Generator
 from pathlib import Path
 from typing import Any
 
 import datasets
+import pysbd
 import sudachipy
 import tokenizers
 import yaml
@@ -18,13 +18,36 @@ from src.data import download_dataset
 
 def save_pre_tokenized_text(config: dict[str, Any]) -> None:
     tokenizer = sudachipy.Dictionary().create()
+    segmenter = pysbd.Segmenter(language="ja", clean=False)
+    max_bytes = config["sentencepiece"]["max_sentence_length"]
+
     dataset_dict = download_dataset(config["dataset_names"], unique=True, seed=config["seed"])
+
     os.makedirs("data/pre_tokenized", exist_ok=True)
     with open("data/pre_tokenized/train.txt", "w") as f:
         for example in tqdm(dataset_dict["train"]):
-            for sentence in split_long_sentence(preprocess_text(example["text"])):
-                f.write(pre_tokenize(sentence, tokenizer) + "\n")
-
+            example_text = preprocess_text(example["text"])
+            pre_tokenized_text = ""
+            pre_tokenized_text_bytes = 0
+            for sentence in segmenter.segment(example_text):
+                pre_tokenized_sentence = pre_tokenize(sentence, tokenizer)
+                pre_tokenized_sentence_bytes = len(pre_tokenized_sentence.encode())
+                if pre_tokenized_text_bytes + pre_tokenized_sentence_bytes > max_bytes:
+                    if pre_tokenized_text != "":
+                        f.write(pre_tokenized_text.removesuffix("<|dlm|>") + "\n")
+                        if pre_tokenized_sentence_bytes > max_bytes:
+                            pre_tokenized_text = ""
+                            pre_tokenized_text_bytes = 0
+                        else:
+                            pre_tokenized_text = pre_tokenized_sentence + "<|dlm|>"
+                            pre_tokenized_text_bytes = pre_tokenized_sentence_bytes
+                    else:
+                        pass
+                else:
+                    pre_tokenized_text += pre_tokenized_sentence + "<|dlm|>"
+                    pre_tokenized_text_bytes += pre_tokenized_sentence_bytes
+            if pre_tokenized_text != "":
+                f.write(pre_tokenized_text + "\n")
     del dataset_dict, tokenizer
     gc.collect()
 
@@ -39,27 +62,6 @@ def preprocess_text(text: str) -> str:
         ]
     ).normalize_str(text)
     return text
-
-
-def split_long_sentence(text: str) -> Generator[str, None, None]:
-    max_length = 2048
-
-    start_index = 0
-    end_index = max_length
-    while start_index < len(text):
-        if len(text) < end_index:
-            yield text[start_index:]
-            break
-
-        split_point = text.rfind("。", start_index, end_index)
-        if split_point == -1:
-            yield text[start_index:end_index]
-            start_index = end_index
-            end_index = start_index + max_length
-        else:
-            yield text[start_index : split_point + 1]
-            start_index = split_point + 1
-            end_index = start_index + max_length
 
 
 def pre_tokenize(text: str, tokenizer: sudachipy.Tokenizer) -> str:
