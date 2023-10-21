@@ -15,7 +15,7 @@ from tqdm import tqdm
 
 from src.data.download import download_dataset
 
-DELIMITER = "<dlm>"
+DELIMITER = "｜"  # noqa: RUF001  # FULLWIDTH VERTICAL LINE
 
 
 def save_pre_tokenized_text(config: dict[str, Any]) -> None:
