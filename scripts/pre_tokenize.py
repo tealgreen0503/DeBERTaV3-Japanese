@@ -73,7 +73,7 @@ def pre_tokenize(text: str, tokenizer: sudachipy.Tokenizer) -> str:
             DELIMITER.join(re.split("( )", m.surface())).removeprefix(DELIMITER).removesuffix(DELIMITER)
             for m in tokenizer.tokenize(text, mode=sudachipy.SplitMode.A)
         ]
-    ).lower()
+    ).lower()  # lowercase after pre tokenization
 
 
 def main() -> None:
