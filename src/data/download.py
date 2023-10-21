@@ -16,6 +16,9 @@ from src.data.filters import (
     remove_wikipedia_footnote,
 )
 
+# Use save_to_disk() and load_from_disk() instead of using the cache
+datasets.disable_caching()
+
 
 def download_dataset(
     dataset_names: list[Literal["wikipedia", "cc100", "oscar", "mc4"]], unique: bool = False, seed: int = 42
@@ -47,7 +50,7 @@ def download_wikipedia(seed: int) -> DatasetDict:
     if os.path.isdir("data/filtered/wikipedia"):
         return datasets.load_from_disk("data/filtered/wikipedia")
     else:
-        dataset = load_dataset("wikipedia", language="ja", date="20231001", beam_runner="DirectRunner").remove_columns(
+        dataset = load_dataset("wikipedia", language="ja", date="20231020", beam_runner="DirectRunner").remove_columns(
             ["id", "url", "title"]
         )
 
@@ -69,7 +72,7 @@ def download_cc100(seed: int) -> DatasetDict:
     if os.path.isdir("data/filtered/cc100"):
         return datasets.load_from_disk("data/filtered/cc100")
     else:
-        dataset = load_dataset("cc100", lang="ja").remove_columns("id")
+        dataset = load_dataset("cc100", lang="ja", streaming=True).remove_columns("id")
 
         dataset = dataset.filter(is_not_empty())
         dataset = dataset.filter(is_japanese())
@@ -91,7 +94,7 @@ def download_oscar(seed: int) -> DatasetDict:
     if os.path.isdir("data/filtered/oscar"):
         return datasets.load_from_disk("data/filtered/oscar")
     else:
-        dataset = load_dataset("oscar-corpus/OSCAR-2301", language="ja").remove_columns("id")
+        dataset = load_dataset("oscar-corpus/OSCAR-2301", language="ja", streaming=True).remove_columns("id")
 
         dataset = dataset.filter(is_not_empty())
         dataset = dataset.filter(is_japanese())
@@ -116,7 +119,7 @@ def download_mc4(seed: int) -> DatasetDict:
     if os.path.isdir("data/filtered/mc4"):
         return datasets.load_from_disk("data/filtered/mc4")
     else:
-        dataset = load_dataset("mc4", "ja").remove_columns("timestamp")
+        dataset = load_dataset("mc4", languages=["ja"], streaming=True).remove_columns("timestamp")
 
         dataset = dataset.filter(is_not_empty())
         dataset = dataset.filter(is_japanese())

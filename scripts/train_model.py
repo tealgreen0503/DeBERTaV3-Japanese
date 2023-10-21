@@ -19,6 +19,9 @@ from transformers import (
 from src.data.download import download_dataset
 from src.models.modeling_deberta_v3 import DebertaV3ForPreTraining
 
+# Use save_to_disk() and load_from_disk() instead of using the cache
+datasets.disable_caching()
+
 
 def train_model(config: dict[str, Any], local_rank: int = -1) -> None:
     load_dotenv()
@@ -66,9 +69,6 @@ def train_model(config: dict[str, Any], local_rank: int = -1) -> None:
 
 
 def main() -> None:
-    # Use save_to_disk() and load_from_disk() instead of using the cache
-    datasets.disable_caching()
-
     parser = argparse.ArgumentParser()
     parser.add_argument("--config_file", type=str, required=True)
     parser.add_argument("--local_rank", type=int, default=-1)
