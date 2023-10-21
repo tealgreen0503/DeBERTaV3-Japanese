@@ -1,9 +1,8 @@
 import os
-from collections.abc import Generator
 from typing import Literal
 
 import datasets
-from datasets import Dataset, DatasetDict, load_dataset
+from datasets import DatasetDict, load_dataset
 
 from src.data.filters import (
     extract_japanese_text,
@@ -19,7 +18,7 @@ from src.data.filters import (
 
 
 def download_dataset(
-    dataset_names: list[Literal["wikipedia", "wiki40b", "cc100", "oscar", "mc4"]], unique: bool = False, seed: int = 42
+    dataset_names: list[Literal["wikipedia", "cc100", "oscar", "mc4"]], unique: bool = False, seed: int = 42
 ) -> DatasetDict:
     if unique:
         dataset_names = list(set(dataset_names))
@@ -28,8 +27,6 @@ def download_dataset(
         match dataset_name:
             case "wikipedia":
                 dataset_dicts.append(download_wikipedia(seed))
-            case "wiki40b":
-                dataset_dicts.append(download_wiki40b())
             case "cc100":
                 dataset_dicts.append(download_cc100(seed))
             case "oscar":
@@ -65,41 +62,6 @@ def download_wikipedia(seed: int) -> DatasetDict:
         )
 
         dataset_dict.save_to_disk("data/filtered/wikipedia")
-    return dataset_dict
-
-
-def download_wiki40b() -> DatasetDict:
-    def tf_wiki40b_generator(split: str) -> Generator[dict[str, str], None, None]:
-        import tensorflow_datasets as tfds
-
-        tf_dataset = tfds.load("wiki40b/ja", split=split)
-        for aritcle in tf_dataset.as_numpy_iterator():
-            is_paragraph = False
-            for line in aritcle["text"].decode().split("\n"):
-                match line:
-                    case "_START_ARTICLE_":
-                        is_paragraph = False
-                    case "_START_SECTION_":
-                        is_paragraph = False
-                    case "_START_PARAGRAPH_":
-                        is_paragraph = True
-                    case _:
-                        if is_paragraph and len(line) > 0:
-                            yield {"text": line.replace("_NEWLINE_", "")}
-
-    if os.path.isdir("data/filtered/wiki40b"):
-        return datasets.load_from_disk("data/filtered/wiki40b")
-    else:
-        dataset_dict: DatasetDict = DatasetDict()
-        for split in ["train", "validation", "test"]:
-            dataset_dict[split] = Dataset.from_generator(
-                tf_wiki40b_generator, gen_kwargs={"split": datasets.Split(split)}
-            )
-
-        dataset_dict = dataset_dict.filter(is_not_empty())
-        dataset_dict = dataset_dict.map(remove_empty_parenthesis())
-
-        dataset_dict.save_to_disk("data/filtered/wiki40b")
     return dataset_dict
 
 
