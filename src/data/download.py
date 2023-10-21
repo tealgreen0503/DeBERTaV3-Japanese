@@ -2,7 +2,7 @@ import os
 from typing import Literal
 
 import datasets
-from datasets import DatasetDict, load_dataset
+from datasets import Dataset, DatasetDict, load_dataset
 
 from src.data.filters import (
     extract_japanese_text,
@@ -21,9 +21,11 @@ datasets.disable_caching()
 
 
 def download_dataset(
-    dataset_names: list[Literal["wikipedia", "cc100", "oscar", "mc4"]], unique: bool = False, seed: int = 42
+    dataset_names: list[Literal["wikipedia", "cc100", "oscar", "mc4"]],
+    seed: int = 42,
+    is_training_tokenizer: bool = False,
 ) -> DatasetDict:
-    if unique:
+    if is_training_tokenizer:
         dataset_names = list(set(dataset_names))
     dataset_dicts: list[DatasetDict] = []
     for dataset_name in dataset_names:
@@ -39,10 +41,20 @@ def download_dataset(
             case _:
                 raise Exception(f"Unsupported dataset: {dataset_name}")
     dataset_dict = DatasetDict()
-    for split in ["train", "validation", "test"]:
-        dataset_dict[split] = datasets.concatenate_datasets(
-            [dataset_dict[split] for dataset_dict in dataset_dicts], split=datasets.Split(split)
-        )
+    if is_training_tokenizer:
+        sampled_datasets: list[Dataset] = []
+        for dataset in dataset_dicts:
+            # Sample 1GB of data from each dataset
+            sample_size = 1e9 / dataset["train"].size_in_bytes
+            assert sample_size <= 1
+            sampled_dataset, _ = dataset.train_test_split(train_size=sample_size, shuffle=True, seed=seed)
+            sampled_datasets.append(sampled_dataset)
+        dataset_dict["train"] = datasets.concatenate_datasets(sampled_datasets, split=datasets.Split("train"))
+    else:
+        for split in ["train", "validation", "test"]:
+            dataset_dict[split] = datasets.concatenate_datasets(
+                [dataset_dict[split] for dataset_dict in dataset_dicts], split=datasets.Split(split)
+            )
     return dataset_dict
 
 

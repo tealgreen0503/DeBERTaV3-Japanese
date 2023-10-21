@@ -23,7 +23,7 @@ def save_pre_tokenized_text(config: dict[str, Any]) -> None:
     segmenter = pysbd.Segmenter(language="ja", clean=False)
     max_bytes = config["sentencepiece"]["max_sentence_length"]
 
-    dataset_dict = download_dataset(config["dataset_names"], unique=True, seed=config["seed"])
+    dataset_dict = download_dataset(config["dataset_names"], seed=config["seed"], is_training_tokenizer=True)
 
     os.makedirs("data/pre_tokenized", exist_ok=True)
     with open("data/pre_tokenized/train.txt", "w") as f:
