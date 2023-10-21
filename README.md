@@ -19,6 +19,7 @@ python -m train_tokenizer --config_file config/deberta-v3-xsmall.yaml
 deepspeed --module --num_gpus=1 scripts.train_model --config_file config/deberta-v3-xsmall.yaml
 ```
 
-## Reference
+## References
 - [microsoft/DeBERTa: The implementation of DeBERTa](https://github.com/microsoft/DeBERTa)
+- [llm-jp/llm-jp-corpus](https://github.com/llm-jp/llm-jp-corpus)
 - [Sentencepiece の分割を MeCab っぽくする - Qiita](https://qiita.com/taku910/items/fbaeab4684665952d5a9)
