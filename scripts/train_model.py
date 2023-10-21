@@ -16,8 +16,8 @@ from transformers import (
     TrainingArguments,
 )
 
-from src.data import download_dataset
-from src.modeling_deberta_v3 import DebertaV3ForPreTraining
+from src.data.download import download_dataset
+from src.models.modeling_deberta_v3 import DebertaV3ForPreTraining
 
 
 def train_model(config: dict[str, Any], local_rank: int = -1) -> None:
