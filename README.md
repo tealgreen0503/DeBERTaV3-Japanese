@@ -3,7 +3,7 @@
 ## Usage
 ### Setup
 ```sh
-cp .env.example .env  # add your WandB API Key
+cp .env.example .env  # set your WandB API Key
 poetry install
 poetry run pip install multiprocess==0.70.15  # cf. https://github.com/huggingface/datasets/issues/5613
 ```
