@@ -9,12 +9,12 @@ poetry run pip install multiprocess==0.70.15  # cf. https://github.com/huggingfa
 ```
 ### Training
 ```sh
-poetry run source run.sh --config_file config/deberta-v3-xsmall.yaml --num_gpus 1
+source run.sh --config_file config/deberta-v3-xsmall.yaml --num_gpus 1
 ```
 or
 ```sh
-poetry run python -m pre_tokenize --config_file config/deberta-v3-xsmall.yaml
-poetry run python -m train_tokenizer --config_file config/deberta-v3-xsmall.yaml
+poetry run python -m scripts.pre_tokenize --config_file config/deberta-v3-xsmall.yaml
+poetry run python -m scripts.train_tokenizer --config_file config/deberta-v3-xsmall.yaml
 poetry run deepspeed --module --num_gpus=1 scripts.train_model --config_file config/deberta-v3-xsmall.yaml
 ```
 

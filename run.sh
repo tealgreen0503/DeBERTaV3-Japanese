@@ -16,6 +16,6 @@ if [[ -z "$config_file" ]]; then
     exit 1
 fi
 
-poetry run python -m scripts.save_pre_tokenized_text --config_file "$config_file"
+poetry run python -m scripts.pre_tokenize --config_file "$config_file"
 poetry run python -m scripts.train_tokenizer --config_file "$config_file"
 poetry run deepspeed --module --num_gpus="$num_gpus" scripts.train_model --config_file "$config_file"
