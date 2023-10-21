@@ -19,7 +19,7 @@ from src.data.filters import (
 
 
 def download_dataset(
-    dataset_names: list[Literal["wikipedia", "wiki40b", "cc100", "oscar"]], unique: bool = False, seed: int = 42
+    dataset_names: list[Literal["wikipedia", "wiki40b", "cc100", "oscar", "mc4"]], unique: bool = False, seed: int = 42
 ) -> DatasetDict:
     if unique:
         dataset_names = list(set(dataset_names))
@@ -130,6 +130,7 @@ def download_oscar(seed: int) -> DatasetDict:
         return datasets.load_from_disk("data/filtered/oscar")
     else:
         dataset = load_dataset("oscar-corpus/OSCAR-2301", language="ja").remove_columns("id")
+
         dataset = dataset.filter(is_not_empty())
         dataset = dataset.filter(is_japanese())
         dataset = dataset.filter(is_not_footer_header_noisy_oscar())
@@ -154,19 +155,20 @@ def download_mc4(seed: int) -> DatasetDict:
         return datasets.load_from_disk("data/filtered/mc4")
     else:
         dataset = load_dataset("mc4", "ja").remove_columns("timestamp")
+
+        dataset = dataset.filter(is_not_empty())
+        dataset = dataset.filter(is_japanese())
+        dataset = dataset.filter(is_valid_domain("mc4"))
+        dataset = dataset.filter(is_not_ad_content())
+        dataset = dataset.filter(is_good_compression_ratio())
+        dataset = dataset.map(extract_japanese_text())
+        dataset = dataset.remove_columns(["url"])
+
         dataset_dict = DatasetDict()
         dataset_dict["train"], valid_test_dataset = dataset.train_test_split(test_size=0.1, seed=seed)
         dataset_dict["validation"], dataset_dict["test"] = valid_test_dataset.train_test_split(
             test_size=0.5, seed=seed
         )
-
-        dataset_dict = dataset_dict.filter(is_not_empty())
-        dataset_dict = dataset_dict.filter(is_japanese())
-        dataset_dict = dataset_dict.filter(is_valid_domain("mc4"))
-        dataset_dict = dataset_dict.filter(is_not_ad_content())
-        dataset_dict = dataset_dict.filter(is_good_compression_ratio())
-        dataset_dict = dataset_dict.map(extract_japanese_text())
-        dataset_dict = dataset_dict.remove_columns(["url"])
 
         dataset_dict.save_to_disk("data/filtered/mc4")
     return dataset_dict
