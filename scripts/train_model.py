@@ -16,7 +16,7 @@ from transformers import (
     TrainingArguments,
 )
 
-from src.data.download import download_dataset
+from src.data import download_dataset
 from src.models.modeling_deberta_v3 import DebertaV3ForPreTraining
 
 # Use save_to_disk() and load_from_disk() instead of using the cache

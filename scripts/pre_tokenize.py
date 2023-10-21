@@ -13,7 +13,7 @@ import yaml
 from tokenizers import Regex
 from tqdm import tqdm
 
-from src.data.download import download_dataset
+from src.data import download_dataset
 
 DELIMITER = "｜"  # noqa: RUF001  # FULLWIDTH VERTICAL LINE
 
