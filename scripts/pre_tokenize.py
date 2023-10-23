@@ -5,7 +5,6 @@ import re
 from pathlib import Path
 from typing import Any
 
-import datasets
 import pysbd
 import sudachipy
 import tokenizers
@@ -95,9 +94,6 @@ def pre_tokenize(text: str, tokenizer: sudachipy.Tokenizer) -> str:
 
 
 def main() -> None:
-    # Use save_to_disk() and load_from_disk() instead of using the cache
-    datasets.disable_caching()
-
     parser = argparse.ArgumentParser()
     parser.add_argument("--config_file", type=str, required=True)
     args = parser.parse_args()
