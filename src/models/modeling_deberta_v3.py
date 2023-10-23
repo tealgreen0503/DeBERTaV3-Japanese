@@ -163,11 +163,11 @@ class DebertaV3ForPreTraining(DebertaV2PreTrainedModel):
             attentions=discriminator_outputs.attentions,
         )
 
-    def save_pretrained(self, save_directory: str | os.PathLike, **kwargs: Any) -> None:
-        self.generator.save_pretrained(os.path.join(save_directory, "generator"), **kwargs)
-        self.save_pretrained_discriminator(save_directory, **kwargs)
+    def save_pretrained(self, save_directory: str | os.PathLike, *args: Any, **kwargs: Any) -> None:
+        self.generator.save_pretrained(os.path.join(save_directory, "generator"), *args, **kwargs)
+        self.save_pretrained_discriminator(save_directory, *args, **kwargs)
 
-    def save_pretrained_discriminator(self, save_directory: str | os.PathLike, **kwargs: dict[str, Any]) -> None:
+    def save_pretrained_discriminator(self, save_directory: str | os.PathLike, *args: Any, **kwargs: Any) -> None:
         """save discriminator's weights with for Gradient-Disentangled Embedding Sharing"""
 
         def set_embeddings_weight_added_delta_as_parameter(
@@ -196,7 +196,17 @@ class DebertaV3ForPreTraining(DebertaV2PreTrainedModel):
                 self.generator.deberta.embeddings.token_type_embeddings.weight,
             )
 
-        self.discriminator.save_pretrained(save_directory, **kwargs)
+        self.discriminator.save_pretrained(save_directory, *args, **kwargs)
+
+        delattr(self.discriminator.deberta.embeddings.word_embeddings, "weight")
+        if self.config.position_biased_input:
+            delattr(self.discriminator.deberta.embeddings.position_embeddings, "weight")
+        if self.config.type_vocab_size > 0:
+            delattr(self.discriminator.deberta.embeddings.token_type_embeddings, "weight")
+
+    def from_pretrained(self, pretrained_model_name_or_path: str | os.PathLike, *args, **kwargs: Any) -> None:
+        self.generator.from_pretrained(os.path.join(pretrained_model_name_or_path, "generator"), *args, **kwargs)
+        self.discriminator.from_pretrained(pretrained_model_name_or_path, *args, **kwargs)
 
         delattr(self.discriminator.deberta.embeddings.word_embeddings, "weight")
         if self.config.position_biased_input:
