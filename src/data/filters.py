@@ -10,14 +10,14 @@ from hojichar import Document
 from hojichar.filters.document_filters import AcceptJapanese, DiscardAds, DiscardRareKuten
 
 
-def is_not_empty() -> Callable[..., bool]:
+def is_not_empty() -> Callable[[dict[str, Any]], bool]:
     def is_valid(example: dict[str, Any]) -> bool:
         return example["text"].strip() != ""
 
     return is_valid
 
 
-def is_japanese() -> Callable[..., bool]:
+def is_japanese() -> Callable[[dict[str, Any]], bool]:
     filters = [AcceptJapanese(), DiscardRareKuten()]
 
     def is_valid(example: dict[str, Any]) -> bool:
@@ -31,7 +31,7 @@ def is_japanese() -> Callable[..., bool]:
     return is_valid
 
 
-def is_valid_domain(dataset_name: Literal["oscar", "mc4"]) -> Callable[..., bool]:
+def is_valid_domain(dataset_name: Literal["oscar", "mc4"]) -> Callable[[dict[str, Any]], bool]:
     dict_path = Path(__file__).parent.joinpath("valid_domains.txt")
     valid_domains = set(dict_path.read_text().splitlines())
 
@@ -57,7 +57,7 @@ def is_valid_domain(dataset_name: Literal["oscar", "mc4"]) -> Callable[..., bool
     return is_valid
 
 
-def is_not_ad_content() -> Callable[..., bool]:
+def is_not_ad_content() -> Callable[[dict[str, Any]], bool]:
     content_filter = DiscardAds()
 
     def is_valid(example: dict[str, Any]) -> bool:
@@ -67,7 +67,7 @@ def is_not_ad_content() -> Callable[..., bool]:
     return is_valid
 
 
-def is_not_footer_header_noisy_oscar() -> Callable[..., bool]:
+def is_not_footer_header_noisy_oscar() -> Callable[[dict[str, Any]], bool]:
     filterd_tag = {"header", "footer", "noisy"}
 
     def is_valid(example: dict[str, Any]) -> bool:
@@ -76,7 +76,7 @@ def is_not_footer_header_noisy_oscar() -> Callable[..., bool]:
     return is_valid
 
 
-def is_good_compression_ratio() -> Callable[..., bool]:
+def is_good_compression_ratio() -> Callable[[dict[str, Any]], bool]:
     """Checks if data compression (deflate) yields a desired size of data stream.
 
     NOTE:
@@ -127,7 +127,7 @@ def is_good_compression_ratio() -> Callable[..., bool]:
     return is_valid
 
 
-def extract_japanese_text() -> Callable[..., dict[str, Any]]:
+def extract_japanese_text() -> Callable[[dict[str, list[Any]]], dict[str, list[Any]]]:
     ja_regex = regex.compile(r"[\p{Script=Hiragana}\p{Script=Katakana}ー]+")
     script_regex = regex.compile(r"[\u0000-\u007F\u0020-\u002F\u003A-\u0040\u005B-\u0060\u007B-\u007E]{100,}")
     url_regex = regex.compile(r"https?://[\w/:%#\$&\?\(\)~\.=\+\-]+")
@@ -141,39 +141,50 @@ def extract_japanese_text() -> Callable[..., dict[str, Any]]:
         valid_text += sentence[index:]
         return valid_text
 
-    def extract(example: dict[str, Any]) -> dict[str, Any]:
+    def extract(text: str) -> str:
         valid_text = ""
-        for sentence in example["text"].split("\n"):
+        for sentence in text.split("\n"):
             if ja_regex.search(sentence):
                 sentence = regex_filter(sentence, url_regex)
                 sentence = regex_filter(sentence, script_regex)
                 valid_text += sentence
-        example["text"] = valid_text
-        return example
+        return valid_text
 
-    return extract
+    def batch_extract(examples: dict[str, list[Any]]) -> dict[str, list[Any]]:
+        examples["text"] = [extract(text) for text in examples["text"]]
+        return examples
+
+    return batch_extract
 
 
-def remove_wikipedia_footnote() -> Callable[..., dict[str, Any]]:
+def remove_wikipedia_footnote() -> Callable[[dict[str, list[Any]]], dict[str, list[Any]]]:
     footnote_sections: list[str] = ["脚注", "関連項目", "日本国内の関連項目", "出典", "出典・脚注", "参照", "外部リンク", "参考文献", "その他関連事項"]
     footnote_regex = regex.compile(rf"\n({'|'.join(footnote_sections)})\s*\n")
 
-    def remove(example: dict[str, Any]) -> dict[str, Any]:
-        if m := footnote_regex.search(example["text"]):
-            example["text"] = example["text"][: m.start()]
-        return example
+    def remove(text: str) -> str:
+        if m := footnote_regex.search(text):
+            text = text[: m.start()]
+        return text
 
-    return remove
+    def batch_remove(examples: dict[str, list[Any]]) -> dict[str, list[Any]]:
+        examples["text"] = [remove(text) for text in examples["text"]]
+        return examples
+
+    return batch_remove
 
 
-def remove_empty_parenthesis() -> Callable[..., dict[str, Any]]:
-    def remove(example: dict[str, Any]) -> dict[str, Any]:
-        example["text"] = regex.sub(r"（[\s,，、;；]*", "（", example["text"])  # noqa: RUF001
-        example["text"] = regex.sub(r"[\s,，、;；]*）", "）", example["text"])  # noqa: RUF001
-        example["text"] = regex.sub(r"（\s*）", "", example["text"])  # noqa: RUF001
-        example["text"] = regex.sub(r"\([\s,;]*", "(", example["text"])
-        example["text"] = regex.sub(r"[\s,;]*\)", ")", example["text"])
-        example["text"] = regex.sub(r"\s?\(\s*\)", "", example["text"])
-        return example
+def remove_empty_parenthesis() -> Callable[[dict[str, Any]], dict[str, Any]]:
+    def remove(text: str) -> str:
+        text = regex.sub(r"（[\s,，、;；]*", "（", text)  # noqa: RUF001
+        text = regex.sub(r"[\s,，、;；]*）", "）", text)  # noqa: RUF001
+        text = regex.sub(r"（\s*）", "", text)  # noqa: RUF001
+        text = regex.sub(r"\([\s,;]*", "(", text)
+        text = regex.sub(r"[\s,;]*\)", ")", text)
+        text = regex.sub(r"\s?\(\s*\)", "", text)
+        return text
 
-    return remove
+    def batch_remove(examples: dict[str, list[Any]]) -> dict[str, list[Any]]:
+        examples["text"] = [remove(text) for text in examples["text"]]
+        return examples
+
+    return batch_remove
