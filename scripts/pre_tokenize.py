@@ -21,35 +21,53 @@ DELIMITER = "｜"  # noqa: RUF001  # FULLWIDTH VERTICAL LINE
 def save_pre_tokenized_text(config: dict[str, Any]) -> None:
     tokenizer = sudachipy.Dictionary().create()
     segmenter = pysbd.Segmenter(language="ja", clean=False)
-    max_bytes = config["sentencepiece"]["max_sentence_length"]
+    max_bytes = config["sentencepiece"]["max_sentence_length"] + len(DELIMITER.encode())
 
     dataset_dict = download_dataset(config["dataset_names"], seed=config["seed"], is_training_tokenizer=True)
 
     os.makedirs("data/pre_tokenized", exist_ok=True)
     with open("data/pre_tokenized/train.txt", "w") as f:
         for example in tqdm(dataset_dict["train"]):
-            example_text = preprocess_text(example["text"])
-            pre_tokenized_text = ""
-            pre_tokenized_text_bytes = 0
-            for sentence in segmenter.segment(example_text):
-                pre_tokenized_sentence = pre_tokenize(sentence, tokenizer)
-                pre_tokenized_sentence_bytes = len(pre_tokenized_sentence.encode())
-                if pre_tokenized_text_bytes + pre_tokenized_sentence_bytes > max_bytes:
-                    if pre_tokenized_text != "":
-                        f.write(pre_tokenized_text.removesuffix(DELIMITER) + "\n")
-                        if pre_tokenized_sentence_bytes > max_bytes:
-                            pre_tokenized_text = ""
-                            pre_tokenized_text_bytes = 0
-                        else:
-                            pre_tokenized_text = pre_tokenized_sentence + DELIMITER
-                            pre_tokenized_text_bytes = pre_tokenized_sentence_bytes
+            text = ""
+            text_bytes = 0
+            for _sentence in segmenter.segment(preprocess_text(example["text"])):
+                try:
+                    sentence = pre_tokenize(_sentence, tokenizer) + DELIMITER
+                except Exception:
+                    if text != "":
+                        f.write(text.removesuffix(DELIMITER) + "\n")
+                        text = ""
+                        text_bytes = 0
+                        continue
                     else:
-                        pass
-                else:
-                    pre_tokenized_text += pre_tokenized_sentence + DELIMITER
-                    pre_tokenized_text_bytes += pre_tokenized_sentence_bytes
-            if pre_tokenized_text != "":
-                f.write(pre_tokenized_text + "\n")
+                        # text = ""
+                        # text_bytes = 0
+                        continue
+                finally:
+                    sentence_bytes = len(sentence.encode())
+                    if text_bytes + sentence_bytes < max_bytes:
+                        text += sentence
+                        text_bytes += sentence_bytes
+                        continue
+                    else:
+                        if text != "":
+                            f.write(text.removesuffix(DELIMITER) + "\n")
+                            if sentence_bytes < max_bytes:
+                                text = sentence
+                                text_bytes = sentence_bytes
+                                continue
+                            else:
+                                # ignore too long sentence
+                                text = ""
+                                text_bytes = 0
+                                continue
+                        else:
+                            # text = ""
+                            # text_bytes = 0
+                            continue
+        if text != "":
+            f.write(text.removesuffix(DELIMITER) + "\n")
+
     del dataset_dict, tokenizer
     gc.collect()
 
