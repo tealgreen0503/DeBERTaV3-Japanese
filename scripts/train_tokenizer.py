@@ -95,10 +95,10 @@ def get_normalizer(proto: ModelProto) -> normalizers.Normalizer:
         normalizers.Replace(Regex(" {2,}"), " "),
         normalizers.Lowercase(),
     ]
-    if not precompiled_charsmap:
-        return normalizers.Sequence(normalizer_list)
-    else:
-        return normalizers.Sequence([*normalizer_list, normalizers.Precompiled(precompiled_charsmap)])
+    if precompiled_charsmap:
+        normalizer_list.append(normalizers.Precompiled(precompiled_charsmap))
+    normalizer_list.append(normalizers.Replace(Regex(" "), "▁"))
+    return normalizers.Sequence(normalizer_list)
 
 
 def get_docoder() -> decoders.Decoder:
