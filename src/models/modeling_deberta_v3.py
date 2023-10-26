@@ -204,7 +204,7 @@ class DebertaV3ForPreTraining(DebertaV2PreTrainedModel):
         if self.config.type_vocab_size > 0:
             delattr(self.discriminator.deberta.embeddings.token_type_embeddings, "weight")
 
-    def from_pretrained(self, pretrained_model_name_or_path: str | os.PathLike, *args, **kwargs: Any) -> None:
+    def from_pretrained(self, pretrained_model_name_or_path: str | os.PathLike, *args: Any, **kwargs: Any) -> None:
         self.generator.from_pretrained(os.path.join(pretrained_model_name_or_path, "generator"), *args, **kwargs)
         self.discriminator.from_pretrained(pretrained_model_name_or_path, *args, **kwargs)
 
