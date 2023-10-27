@@ -45,7 +45,7 @@ def download_dataset(
         for _dataset_dict in dataset_dicts:
             # Sample 1GB of data from each train dataset
             dataset = _dataset_dict["train"]
-            sample_size = 1e9 / dataset.size_in_bytes
+            sample_size = int(1024**3) / dataset.size_in_bytes
             assert sample_size <= 1
             sampled_dataset, _ = dataset.train_test_split(train_size=sample_size, shuffle=True, seed=seed).values()
             sampled_datasets.append(sampled_dataset)
