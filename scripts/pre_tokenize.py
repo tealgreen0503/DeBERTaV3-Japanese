@@ -2,23 +2,24 @@ import argparse
 import gc
 import os
 import re
+import unicodedata
+from functools import partial
 from pathlib import Path
 from typing import Any
 
 import pysbd
 import sudachipy
-import tokenizers
 import yaml
-from tokenizers import Regex
+from tokenizers.normalizers import Nmt
 from tqdm import tqdm
 
 from src.data import download_dataset
 
-DELIMITER = "｜"  # noqa: RUF001  # FULLWIDTH VERTICAL LINE
+DELIMITER = "<dlm>"
 
 
 def save_pre_tokenized_text(config: dict[str, Any]) -> None:
-    tokenizer = sudachipy.Dictionary().create()
+    tokenizer = sudachipy.Dictionary().create(mode=sudachipy.SplitMode.A)
     segmenter = pysbd.Segmenter(language="ja", clean=False)
     max_bytes = config["sentencepiece"]["max_sentence_length"] + len(DELIMITER.encode())
 
@@ -29,9 +30,9 @@ def save_pre_tokenized_text(config: dict[str, Any]) -> None:
         for example in tqdm(dataset_dict["train"]):
             text = ""
             text_bytes = 0
-            for _sentence in segmenter.segment(preprocess_text(example["text"])):
+            for sentence in segmenter.segment(preprocess(example["text"])):
                 try:
-                    sentence = pre_tokenize(_sentence, tokenizer) + DELIMITER
+                    sentence = pre_tokenize(sentence, tokenizer) + DELIMITER
                 except Exception:
                     if text != "":
                         f.write(text.removesuffix(DELIMITER) + "\n")
@@ -71,26 +72,22 @@ def save_pre_tokenized_text(config: dict[str, Any]) -> None:
     gc.collect()
 
 
-def preprocess_text(text: str) -> str:
-    text = tokenizers.normalizers.Sequence(
-        [
-            tokenizers.normalizers.Strip(),
-            tokenizers.normalizers.Nmt(),
-            tokenizers.normalizers.NFKC(),
-            tokenizers.normalizers.Replace(Regex(" {2,}"), " "),
-        ]
-    ).normalize_str(text)
-    return text
+nmt_normalize = Nmt().normalize_str
+nfkc_normalize = partial(unicodedata.normalize, "NFKC")
+space_normalize = partial(re.compile(r" {2,}").sub, " ")
+
+
+def preprocess(text: str) -> str:
+    return space_normalize(nfkc_normalize(nmt_normalize(text.strip())))
 
 
 def pre_tokenize(text: str, tokenizer: sudachipy.Tokenizer) -> str:
-    """split by sudachi and space"""
-    return DELIMITER.join(
-        [
-            DELIMITER.join(re.split("( )", m.surface())).removeprefix(DELIMITER).removesuffix(DELIMITER)
-            for m in tokenizer.tokenize(text, mode=sudachipy.SplitMode.A)
-        ]
-    ).lower()  # lowercase after pre tokenization
+    """split by sudachi tokenizer and space"""
+    return DELIMITER.join([split_by_space(m.surface()) for m in tokenizer.tokenize(text.strip())])
+
+
+def split_by_space(text: str) -> str:
+    return text[0] + text[1:-1].replace(" ", f"{DELIMITER} {DELIMITER}") + text[-1] if " " in text[1:-1] else text
 
 
 def main() -> None:
