@@ -7,7 +7,7 @@ from typing import Any
 
 import sentencepiece as spm
 import yaml
-from tokenizers import Regex, Tokenizer, decoders, normalizers, processors
+from tokenizers import Regex, Tokenizer, decoders, normalizers, pre_tokenizers, processors
 from tokenizers.models import BPE, Unigram
 from transformers import DebertaV2TokenizerFast, PreTrainedTokenizerFast
 from transformers.convert_slow_tokenizer import SentencePieceExtractor, import_protobuf
@@ -44,6 +44,8 @@ def convert_spm_kwargs(**kwargs: Any) -> str:
 
 
 def create_tokenizer(vocab_file: str, **kwargs: Any) -> PreTrainedTokenizerFast:
+    """cf. transformers.convert_slow_tokenizer.SpmConverter.__init__"""
+
     # from transformers.utils import sentencepiece_model_pb2 as model_pb2
     model_pb2 = import_protobuf()
 
@@ -61,13 +63,20 @@ def create_tokenizer(vocab_file: str, **kwargs: Any) -> PreTrainedTokenizerFast:
         )
 
     tokenizer = get_backend_tokenizer(proto, vocab_file)
-    tokenizer.normalizer = get_normalizer(proto)
+
+    tokenizer.normalizer = get_normalizer(proto, do_lower_case=kwargs.get("do_lower_case", False))
+    pre_tokenizer = get_pre_tokenizer(split_by_punct=kwargs.get("split_by_punct", False))
+    if pre_tokenizer is not None:
+        tokenizer.pre_tokenizer = pre_tokenizer
     tokenizer.decoder = get_docoder()
-    tokenizer.post_processor = get_post_processor()
+    tokenizer.post_processor = get_post_processor(tokenizer)
+
     return DebertaV2TokenizerFast(tokenizer_object=tokenizer, **kwargs)
 
 
 def get_backend_tokenizer(proto: ModelProto, vocab_file: str) -> Tokenizer:
+    """cf. transformers.convert_slow_tokenizer.SpmConverter.tokenizer"""
+
     model_type = proto.trainer_spec.model_type
     vocab_scores = [(piece.piece, piece.score) for piece in proto.pieces]
     unk_id = proto.trainer_spec.unk_id
@@ -86,30 +95,51 @@ def get_backend_tokenizer(proto: ModelProto, vocab_file: str) -> Tokenizer:
     return tokenizer
 
 
-def get_normalizer(proto: ModelProto) -> normalizers.Normalizer:
+def get_normalizer(proto: ModelProto, do_lower_case: bool = False) -> normalizers.Normalizer:
+    """cf. transformers.convert_slow_tokenizer.DebertaV2Converter.normalizer"""
+
+    list_normalizers = []
+    if do_lower_case:
+        list_normalizers.append(normalizers.Lowercase())
+    list_normalizers.append(normalizers.Strip())
+
     precompiled_charsmap = proto.normalizer_spec.precompiled_charsmap
-    normalizer_list = [
-        normalizers.Strip(),
-        normalizers.Nmt(),
-        normalizers.NFKC(),
-        normalizers.Replace(Regex(" {2,}"), " "),
-        normalizers.Lowercase(),
-    ]
     if precompiled_charsmap:
-        normalizer_list.append(normalizers.Precompiled(precompiled_charsmap))
-    normalizer_list.append(normalizers.Replace(Regex(" "), "▁"))
-    return normalizers.Sequence(normalizer_list)
+        list_normalizers.append(normalizers.Precompiled(precompiled_charsmap))
+
+    list_normalizers.append(normalizers.Replace(Regex(" {2,}"), " "))
+    # replace space with ▁ instead of metaspace pre tokenization
+    list_normalizers.append(normalizers.Replace(Regex(" "), "▁"))
+
+    return normalizers.Sequence(list_normalizers)
+
+
+def get_pre_tokenizer(split_by_punct: bool = False) -> pre_tokenizers.PreTokenizer | None:
+    """cf. transformers.convert_slow_tokenizer.DeberaV2Converter.pre_tokenizer
+
+    * do not use Metaspace pre_tokenizer unlike the original implementation
+    """
+    if split_by_punct:
+        return pre_tokenizers.Punctuation(behavior="isolated")
+    else:
+        return None
 
 
 def get_docoder() -> decoders.Decoder:
+    """cf. transformers.convert_slow_tokenizer.SpmConverter.decoder"""
     return decoders.Metaspace(replacement="▁", add_prefix_space=False)
 
 
-def get_post_processor() -> processors.PostProcessor:
+def get_post_processor(tokenizer: Tokenizer) -> processors.PostProcessor:
+    """cf. transformers.convert_slow_tokenizer.DeberaV2Converter.post_processor"""
+
     return processors.TemplateProcessing(
         single="[CLS]:0 $A:0 [SEP]:0",
         pair="[CLS]:0 $A:0 [SEP]:0 $B:1 [SEP]:1",
-        special_tokens=[("[CLS]", 1), ("[SEP]", 2)],
+        special_tokens=[
+            ("[CLS]", tokenizer.token_to_id("[CLS]")),
+            ("[SEP]", tokenizer.token_to_id("[SEP]")),
+        ],
     )
 
 
