@@ -6,7 +6,7 @@ dataset_names:
   - wikipedia
 
 sentencepiece:
-  model_type: bpe
+  model_type: unigram
   vocab_size: 32000
   character_coverage: 0.9995
   shuffle_input_sentence: true
@@ -28,7 +28,7 @@ sentencepiece:
   unk_piece: "[UNK]"
 
 tokenizer:
-  do_lower_case: true
+  do_lower_case: false
   split_by_punct: false
   bos_token: "[CLS]"
   eos_token: "[SEP]"
@@ -37,7 +37,6 @@ tokenizer:
   pad_token: "[PAD]"
   cls_token: "[CLS]"
   mask_token: "[MASK]"
-  model_max_length: 512
 
 model:
   discriminator:
