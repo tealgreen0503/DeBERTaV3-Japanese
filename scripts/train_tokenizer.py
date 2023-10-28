@@ -14,6 +14,7 @@ from transformers.convert_slow_tokenizer import SentencePieceExtractor, import_p
 from transformers.utils.sentencepiece_model_pb2 import ModelProto
 
 from scripts.pre_tokenize import DELIMITER
+from src.utils import cpu_count
 
 
 def train_tokenizer(config: dict[str, Any]) -> None:
@@ -22,6 +23,7 @@ def train_tokenizer(config: dict[str, Any]) -> None:
     spm_kwargs = convert_spm_kwargs(
         input="data/pre_tokenized/train.txt",
         model_prefix=spm_model_prefix,
+        num_threads=cpu_count(),
         pretokenization_delimiter=DELIMITER,
         **config["sentencepiece"],
     )
@@ -117,7 +119,7 @@ def get_normalizer(proto: ModelProto, do_lower_case: bool = False) -> normalizer
 def get_pre_tokenizer(split_by_punct: bool = False) -> pre_tokenizers.PreTokenizer | None:
     """cf. transformers.convert_slow_tokenizer.DeberaV2Converter.pre_tokenizer
 
-    * do not use Metaspace pre_tokenizer unlike the original implementation
+    * Do not use Metaspace pre_tokenizer unlike the original implementation
     """
     if split_by_punct:
         return pre_tokenizers.Punctuation(behavior="isolated")

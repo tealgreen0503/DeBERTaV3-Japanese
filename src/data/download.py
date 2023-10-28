@@ -16,6 +16,7 @@ from src.data.filters import (
     remove_empty_parenthesis,
     remove_wikipedia_footnote,
 )
+from src.utils import cpu_count
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -45,7 +46,7 @@ def download_dataset(
         for _dataset_dict in dataset_dicts:
             # Sample 1GB of data from each train dataset
             dataset = _dataset_dict["train"]
-            sample_size = int(1024**3) / dataset.size_in_bytes
+            sample_size = 1e9 / dataset.size_in_bytes
             assert sample_size <= 1
             sampled_dataset, _ = dataset.train_test_split(train_size=sample_size, shuffle=True, seed=seed).values()
             sampled_datasets.append(sampled_dataset)
@@ -63,13 +64,18 @@ def download_wikipedia(seed: int) -> DatasetDict:
         return datasets.load_from_disk("data/filtered/wikipedia")
     else:
         dataset = load_dataset(
-            "wikipedia", language="ja", date="20231020", beam_runner="DirectRunner", split=datasets.Split.TRAIN
+            "wikipedia",
+            language="ja",
+            date="20231020",
+            beam_runner="DirectRunner",
+            split=datasets.Split.TRAIN,
+            num_proc=cpu_count(),
         ).remove_columns(["id", "url", "title"])
         logger.info(f"Completed downloading {dataset.info.dataset_name}: size={dataset.size_in_bytes / 1e9:.2f}GB")
 
-        dataset = dataset.filter(is_not_empty())
-        dataset = dataset.map(remove_wikipedia_footnote(), batched=True)
-        dataset = dataset.map(remove_empty_parenthesis(), batched=True)
+        dataset = dataset.filter(is_not_empty(), num_proc=cpu_count())
+        dataset = dataset.map(remove_wikipedia_footnote(), batched=True, num_proc=cpu_count())
+        dataset = dataset.map(remove_empty_parenthesis(), batched=True, num_proc=cpu_count())
 
         dataset_dict = DatasetDict()
         dataset_dict["train"], valid_test_dataset = dataset.train_test_split(test_size=0.1, seed=seed).values()
@@ -77,7 +83,7 @@ def download_wikipedia(seed: int) -> DatasetDict:
             test_size=0.5, seed=seed
         ).values()
 
-        dataset_dict.save_to_disk("data/filtered/wikipedia")
+        dataset_dict.save_to_disk("data/filtered/wikipedia", num_proc=cpu_count())
     return dataset_dict
 
 
@@ -85,14 +91,16 @@ def download_cc100(seed: int) -> DatasetDict:
     if os.path.isdir("data/filtered/cc100"):
         return datasets.load_from_disk("data/filtered/cc100")
     else:
-        dataset = load_dataset("cc100", lang="ja", split=datasets.Split.TRAIN, streaming=True).remove_columns("id")
+        dataset = load_dataset(
+            "cc100", lang="ja", split=datasets.Split.TRAIN, streaming=True, num_proc=cpu_count()
+        ).remove_columns("id")
         logger.info(f"Completed downloading {dataset.info.dataset_name}: size={dataset.size_in_bytes / 1e9:.2f}GB")
 
-        dataset = dataset.filter(is_not_empty())
-        dataset = dataset.filter(is_japanese())
-        dataset = dataset.filter(is_not_ad_content())
-        dataset = dataset.filter(is_good_compression_ratio())
-        dataset = dataset.map(extract_japanese_text(), batched=True)
+        dataset = dataset.filter(is_not_empty(), num_proc=cpu_count())
+        dataset = dataset.filter(is_japanese(), num_proc=cpu_count())
+        dataset = dataset.filter(is_not_ad_content(), num_proc=cpu_count())
+        dataset = dataset.filter(is_good_compression_ratio(), num_proc=cpu_count())
+        dataset = dataset.map(extract_japanese_text(), batched=True, num_proc=cpu_count())
 
         dataset_dict = DatasetDict()
         dataset_dict["train"], valid_test_dataset = dataset.train_test_split(test_size=0.1, seed=seed).values()
@@ -100,7 +108,7 @@ def download_cc100(seed: int) -> DatasetDict:
             test_size=0.5, seed=seed
         ).values()
 
-        dataset_dict.save_to_disk("data/filtered/cc100")
+        dataset_dict.save_to_disk("data/filtered/cc100", num_proc=cpu_count())
     return dataset_dict
 
 
@@ -109,18 +117,22 @@ def download_oscar(seed: int) -> DatasetDict:
         return datasets.load_from_disk("data/filtered/oscar")
     else:
         dataset = load_dataset(
-            "oscar-corpus/OSCAR-2301", language="ja", split=datasets.Split.TRAIN, streaming=True
+            "oscar-corpus/OSCAR-2301",
+            language="ja",
+            split=datasets.Split.TRAIN,
+            streaming=True,
+            num_proc=cpu_count(),
         ).remove_columns("id")
         logger.info(f"Completed downloading {dataset.info.dataset_name}: size={dataset.size_in_bytes / 1e9:.2f}GB")
 
-        dataset = dataset.filter(is_not_empty())
-        dataset = dataset.filter(is_japanese())
-        dataset = dataset.filter(is_not_footer_header_noisy_oscar())
-        dataset = dataset.filter(is_valid_domain("oscar"))
-        dataset = dataset.filter(is_not_ad_content())
-        dataset = dataset.filter(is_good_compression_ratio())
-        dataset = dataset.remove_columns(["meta"])
-        dataset = dataset.map(extract_japanese_text(), batched=True)
+        dataset = dataset.filter(is_not_empty(), num_proc=cpu_count())
+        dataset = dataset.filter(is_japanese(), num_proc=cpu_count())
+        dataset = dataset.filter(is_not_footer_header_noisy_oscar(), num_proc=cpu_count())
+        dataset = dataset.filter(is_valid_domain("oscar"), num_proc=cpu_count())
+        dataset = dataset.filter(is_not_ad_content(), num_proc=cpu_count())
+        dataset = dataset.filter(is_good_compression_ratio(), num_proc=cpu_count())
+        dataset = dataset.remove_columns(["meta"], num_proc=cpu_count())
+        dataset = dataset.map(extract_japanese_text(), batched=True, num_proc=cpu_count())
 
         dataset_dict = DatasetDict()
         dataset_dict["train"], valid_test_dataset = dataset.train_test_split(test_size=0.1, seed=seed).values()
@@ -128,5 +140,5 @@ def download_oscar(seed: int) -> DatasetDict:
             test_size=0.5, seed=seed
         ).values()
 
-        dataset_dict.save_to_disk("data/filtered/oscar")
+        dataset_dict.save_to_disk("data/filtered/oscar", num_proc=cpu_count())
     return dataset_dict

@@ -19,14 +19,17 @@ from transformers import (
 
 from src.data import batch_preprocess, download_dataset
 from src.models import DebertaV3ForPreTraining
+from src.utils import cpu_count
 
 
 def train_model(config: dict[str, Any], local_rank: int = -1) -> None:
     load_dotenv()
+
     config_discriminator = DebertaV2Config(**config["model"]["discriminator"])
     config_generator = DebertaV2Config(**config["model"]["generator"])
 
     tokenizer = DebertaV2TokenizerFast.from_pretrained(Path("models") / config["model_name"])
+    tokenizer.deprecation_warnings["Asking-to-pad-a-fast-tokenizer"] = True
     text_segmenter = pysbd.Segmenter(language="ja", clean=False, char_span=True)
 
     if os.path.isdir("data/encoded"):
@@ -38,8 +41,9 @@ def train_model(config: dict[str, Any], local_rank: int = -1) -> None:
             batched=True,
             remove_columns="text",
             fn_kwargs={"tokenizer": tokenizer, "text_segmenter": text_segmenter},
+            num_proc=cpu_count(),
         )
-        dataset_dict.save_to_disk("data/encoded")
+        dataset_dict.save_to_disk("data/encoded", num_proc=cpu_count())
 
     model = DebertaV3ForPreTraining._from_config(
         config=config_discriminator,
@@ -50,7 +54,7 @@ def train_model(config: dict[str, Any], local_rank: int = -1) -> None:
     data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer)
 
     tmp_dir = Path("tmp")
-    training_args = TrainingArguments(output_dir=tmp_dir, local_rank=local_rank, **config["trainer"])
+    training_args = TrainingArguments(output_dir=tmp_dir, dataloader_num_workers=cpu_count(), **config["trainer"])
     trainer = Trainer(
         model=model,
         args=training_args,
