@@ -22,7 +22,7 @@ from src.models import DebertaV3ForPreTraining
 from src.utils import cpu_count
 
 
-def train_model(config: dict[str, Any], local_rank: int = -1) -> None:
+def train_model(config: dict[str, Any]) -> None:
     load_dotenv()
 
     config_discriminator = DebertaV2Config(**config["model"]["discriminator"])
@@ -75,12 +75,11 @@ def train_model(config: dict[str, Any], local_rank: int = -1) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config_file", type=str, required=True)
-    parser.add_argument("--local_rank", type=int, default=-1)
     args = parser.parse_args()
     with Path(args.config_file).open(mode="r") as f:
         config = yaml.safe_load(f)
 
-    train_model(config, local_rank=args.local_rank)
+    train_model(config)
 
 
 if __name__ == "__main__":
