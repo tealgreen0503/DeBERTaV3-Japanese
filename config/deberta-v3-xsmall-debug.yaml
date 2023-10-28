@@ -97,23 +97,23 @@ trainer:
   warmup_steps: 10
   log_level: warning
   logging_strategy: steps
-  logging_steps: 10
+  logging_steps: 1
   save_strategy: steps
-  save_steps: 100
+  save_steps: 10
   save_total_limit: 1
   seed: *seed
   data_seed: *seed
   bf16: true
-  eval_steps: 100
-  dataloader_num_workers: 4
+  bf16_full_eval: false
+  eval_steps: 10
   run_name: *model_name
   disable_tqdm: false
   load_best_model_at_end: true
   metric_for_best_model: loss
   greater_is_better: false
-  deepspeed: config/ds_config.json
   optim: adamw_torch
-  group_by_length: false
+  group_by_length: true
   report_to: wandb
+  gradient_checkpointing: false
   full_determinism: false
   torch_compile: true
