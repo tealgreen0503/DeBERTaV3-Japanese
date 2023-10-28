@@ -160,7 +160,8 @@ cython_debug/
 #.idea/
 
 .tool-versions
-models/*
 data/*
+models/*
+tmp
 wandb
 !.gitkeep
