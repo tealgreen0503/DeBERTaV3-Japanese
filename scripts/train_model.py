@@ -22,7 +22,7 @@ from src.models import DebertaV3ForPreTraining
 from src.utils import cpu_count
 
 
-def train_model(config: dict[str, Any]) -> None:
+def train_model(config: dict[str, Any], resume_checkpoint_id: str | None = None) -> None:
     load_dotenv()
 
     config_discriminator = DebertaV2Config(**config["model"]["discriminator"])
@@ -64,7 +64,16 @@ def train_model(config: dict[str, Any]) -> None:
         tokenizer=tokenizer,
         preprocess_logits_for_metrics=lambda logits, labels: torch.softmax(logits, dim=-1),
     )
-    trainer.train()
+
+    if resume_checkpoint_id is not None:
+        import wandb
+
+        wandb.init(project=os.getenv("WANDB_PROJECT"), id=resume_checkpoint_id, resume="must")
+        checkpoint_artifact = wandb.run.use_artifact(f"checkpoint-{resume_checkpoint_id}:latest")
+        checkpoint_dir = checkpoint_artifact.download()
+        trainer.train(resume_from_checkpoint=checkpoint_dir)
+    else:
+        trainer.train()
 
     shutil.rmtree(tmp_dir)
     save_path = Path("models") / config["model_name"]
@@ -75,11 +84,12 @@ def train_model(config: dict[str, Any]) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config_file", type=str, required=True)
+    parser.add_argument("--resume_checkpoint_id", type=str, default=None)
     args = parser.parse_args()
     with Path(args.config_file).open(mode="r") as f:
         config = yaml.safe_load(f)
 
-    train_model(config)
+    train_model(config, resume_checkpoint_id=args.resume_checkpoint_id)
 
 
 if __name__ == "__main__":
