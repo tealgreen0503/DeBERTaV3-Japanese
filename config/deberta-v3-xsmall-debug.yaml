@@ -97,15 +97,15 @@ trainer:
   warmup_steps: 10
   log_level: warning
   logging_strategy: steps
-  logging_steps: 1
+  logging_steps: 10
   save_strategy: steps
-  save_steps: 10
+  save_steps: 100
   save_total_limit: 1
   seed: *seed
   data_seed: *seed
   bf16: true
   bf16_full_eval: false
-  eval_steps: 10
+  eval_steps: 100
   run_name: *model_name
   disable_tqdm: false
   load_best_model_at_end: true

@@ -22,7 +22,7 @@ from src.models import DebertaV3ForPreTraining
 from src.utils import cpu_count
 
 
-def train_model(config: dict[str, Any], resume_checkpoint_id: str | None = None) -> None:
+def train_model(config: dict[str, Any], resume_checkpoint_id: str | None = None, debug: bool = False) -> None:
     load_dotenv()
 
     config_discriminator = DebertaV2Config(**config["model"]["discriminator"])
@@ -44,11 +44,15 @@ def train_model(config: dict[str, Any], resume_checkpoint_id: str | None = None)
             num_proc=cpu_count(),
         )
         dataset_dict.save_to_disk("data/encoded", num_proc=cpu_count())
+    if debug:
+        dataset_dict["train"] = dataset_dict["train"].select(range(32000))
+        dataset_dict["validation"] = dataset_dict["validation"].select(range(1600))
+        dataset_dict["test"] = dataset_dict["test"].select(range(1600))
 
     model = DebertaV3ForPreTraining._from_config(
         config=config_discriminator,
         config_generator=config_generator,
-        torch_dtype=getattr(torch, config["model"]["torch_dtype"]),
+        torch_dtype=getattr(torch, config["model"].get("torch_dtype", None)),
     )
 
     data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer)
@@ -69,7 +73,7 @@ def train_model(config: dict[str, Any], resume_checkpoint_id: str | None = None)
         import wandb
 
         wandb.init(project=os.getenv("WANDB_PROJECT"), id=resume_checkpoint_id, resume="must")
-        checkpoint_artifact = wandb.run.use_artifact(f"checkpoint-{resume_checkpoint_id}:latest")
+        checkpoint_artifact = wandb.run.use_artifact(resume_checkpoint_id, type="model")
         checkpoint_dir = checkpoint_artifact.download()
         trainer.train(resume_from_checkpoint=checkpoint_dir)
     else:
@@ -85,11 +89,13 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config_file", type=str, required=True)
     parser.add_argument("--resume_checkpoint_id", type=str, default=None)
+    parser.add_argument("--debug", action="store_true", default=False)
     args = parser.parse_args()
+
     with Path(args.config_file).open(mode="r") as f:
         config = yaml.safe_load(f)
 
-    train_model(config, resume_checkpoint_id=args.resume_checkpoint_id)
+    train_model(config, resume_checkpoint_id=args.resume_checkpoint_id, debug=args.debug)
 
 
 if __name__ == "__main__":
