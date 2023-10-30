@@ -1,6 +1,5 @@
 import argparse
 import os
-import shutil
 from pathlib import Path
 from typing import Any
 
@@ -17,12 +16,13 @@ from transformers import (
     TrainingArguments,
 )
 
+import wandb
 from src.data import batch_preprocess, download_dataset
 from src.models import DebertaV3ForPreTraining
 from src.utils import cpu_count
 
 
-def train_model(config: dict[str, Any], resume_checkpoint_id: str | None = None, debug: bool = False) -> None:
+def train_model(config: dict[str, Any], resume_from_run_id: str | None = None, debug: bool = False) -> None:
     load_dotenv()
 
     config_discriminator = DebertaV2Config(**config["model"]["discriminator"])
@@ -57,8 +57,17 @@ def train_model(config: dict[str, Any], resume_checkpoint_id: str | None = None,
 
     data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer)
 
-    tmp_dir = Path("tmp")
-    training_args = TrainingArguments(output_dir=tmp_dir, dataloader_num_workers=cpu_count(), **config["trainer"])
+    if resume_from_run_id is not None:
+        wandb.init(id=resume_from_run_id, name=config["model_name"] + f"-{resume_from_run_id}", resume="must")
+        checkpoint_dir = Path("checkpoints") / config["model_name"] / f"run-{resume_from_run_id}"
+    else:
+        run_id = wandb.util.generate_id()
+        wandb.init(id=run_id, name=config["model_name"] + f"-{run_id}")
+        checkpoint_dir = Path("checkpoints") / config["model_name"] / f"run-{run_id}"
+
+    training_args = TrainingArguments(
+        output_dir=checkpoint_dir, dataloader_num_workers=cpu_count(), **config["trainer"]
+    )
     trainer = Trainer(
         model=model,
         args=training_args,
@@ -69,17 +78,11 @@ def train_model(config: dict[str, Any], resume_checkpoint_id: str | None = None,
         preprocess_logits_for_metrics=lambda logits, labels: torch.softmax(logits, dim=-1),
     )
 
-    if resume_checkpoint_id is not None:
-        import wandb
-
-        wandb.init(project=os.getenv("WANDB_PROJECT"), id=resume_checkpoint_id, resume="must")
-        checkpoint_artifact = wandb.run.use_artifact(resume_checkpoint_id, type="model")
-        checkpoint_dir = checkpoint_artifact.download()
+    if resume_from_run_id is not None:
         trainer.train(resume_from_checkpoint=checkpoint_dir)
     else:
         trainer.train()
 
-    shutil.rmtree(tmp_dir)
     save_path = Path("models") / config["model_name"]
     os.makedirs(save_path, exist_ok=True)
     trainer.save_model(save_path)
@@ -88,14 +91,14 @@ def train_model(config: dict[str, Any], resume_checkpoint_id: str | None = None,
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config_file", type=str, required=True)
-    parser.add_argument("--resume_checkpoint_id", type=str, default=None)
+    parser.add_argument("--resume_run_id", type=str, default=None)
     parser.add_argument("--debug", action="store_true", default=False)
     args = parser.parse_args()
 
     with Path(args.config_file).open(mode="r") as f:
         config = yaml.safe_load(f)
 
-    train_model(config, resume_checkpoint_id=args.resume_checkpoint_id, debug=args.debug)
+    train_model(config, resume_from_run_id=args.resume_run_id, debug=args.debug)
 
 
 if __name__ == "__main__":
