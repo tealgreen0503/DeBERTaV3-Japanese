@@ -30,9 +30,13 @@ def train_tokenizer(config: dict[str, Any]) -> None:
     spm.SentencePieceTrainer.train(spm_kwargs)
 
     tokenizer = create_tokenizer(f"{spm_model_prefix}.model", **config["tokenizer"])
-    tokenizer.save_pretrained(Path("models") / config["model_name"])
-    shutil.copy(spm_model_prefix + ".model", Path("models") / config["model_name"])
-    shutil.copy(spm_model_prefix + ".vocab", Path("models") / config["model_name"])
+
+    tokenizer_path = Path("models") / "tokenizer"
+    tokenizer.save_pretrained(tokenizer_path)
+    shutil.copy(spm_model_prefix + ".model", tokenizer_path)
+    shutil.copy(spm_model_prefix + ".vocab", tokenizer_path)
+
+    shutil.copytree(tokenizer_path, Path("models") / config["model_name"])
 
 
 def convert_spm_kwargs(**kwargs: Any) -> str:
