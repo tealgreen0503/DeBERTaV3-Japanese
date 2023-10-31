@@ -4,7 +4,13 @@ from typing import Any
 
 import torch
 import torch.nn as nn
-from transformers import DebertaV2ForMaskedLM, DebertaV2Model, DebertaV2PreTrainedModel, PretrainedConfig
+from transformers import (
+    DebertaV2Config,
+    DebertaV2ForMaskedLM,
+    DebertaV2Model,
+    DebertaV2PreTrainedModel,
+    PretrainedConfig,
+)
 from transformers.modeling_outputs import ModelOutput
 from transformers.models.deberta_v2.modeling_deberta_v2 import DebertaV2PredictionHeadTransform
 
@@ -38,26 +44,6 @@ class DebertaV3ForPreTraining(DebertaV2PreTrainedModel):
         self.loss_weight_lambda = loss_weight_lambda
 
         self.register_discriminator_forward_pre_hook()
-
-        # Initialize weights and apply final processing
-        self.post_init()
-
-    def _init_weights(self, module: nn.Module) -> None:
-        super()._init_weights(module)
-        self.init_discriminator_embeddings()
-
-    def init_discriminator_embeddings(self) -> None:
-        """initialize discriminator's embedding for Gradient-Disentangled Embedding Sharing"""
-
-        def set_embeddings_weight_delta(embeddings: nn.Embedding) -> None:
-            embeddings.register_parameter("weight_delta", nn.Parameter(torch.zeros_like(embeddings.weight)))
-            delattr(embeddings, "weight")
-
-        set_embeddings_weight_delta(self.discriminator.deberta.embeddings.word_embeddings)
-        if self.config.position_biased_input:
-            set_embeddings_weight_delta(self.discriminator.deberta.embeddings.position_embeddings)
-        if self.config.type_vocab_size > 0:
-            set_embeddings_weight_delta(self.discriminator.deberta.embeddings.token_type_embeddings)
 
     def register_discriminator_forward_pre_hook(self) -> None:
         """register forward pre hook to set discriminator's embedding with for Gradient-Disentangled Embedding Sharing"""
@@ -163,11 +149,11 @@ class DebertaV3ForPreTraining(DebertaV2PreTrainedModel):
             attentions=discriminator_outputs.attentions,
         )
 
-    def save_pretrained(self, save_directory: str | os.PathLike, *args: Any, **kwargs: Any) -> None:
-        self.generator.save_pretrained(os.path.join(save_directory, "generator"), *args, **kwargs)
-        self.save_pretrained_discriminator(save_directory, *args, **kwargs)
+    def save_pretrained(self, save_directory: str | os.PathLike, **kwargs: Any) -> None:
+        self.generator.save_pretrained(os.path.join(save_directory, "generator"), **kwargs)
+        self.save_pretrained_discriminator(save_directory, **kwargs)
 
-    def save_pretrained_discriminator(self, save_directory: str | os.PathLike, *args: Any, **kwargs: Any) -> None:
+    def save_pretrained_discriminator(self, save_directory: str | os.PathLike, **kwargs: Any) -> None:
         """save discriminator's weights with for Gradient-Disentangled Embedding Sharing"""
 
         def set_embeddings_weight_added_delta_as_parameter(
@@ -196,7 +182,7 @@ class DebertaV3ForPreTraining(DebertaV2PreTrainedModel):
                 self.generator.deberta.embeddings.token_type_embeddings.weight,
             )
 
-        self.discriminator.save_pretrained(save_directory, *args, **kwargs)
+        self.discriminator.save_pretrained(save_directory, **kwargs)
 
         delattr(self.discriminator.deberta.embeddings.word_embeddings, "weight")
         if self.config.position_biased_input:
@@ -204,15 +190,39 @@ class DebertaV3ForPreTraining(DebertaV2PreTrainedModel):
         if self.config.type_vocab_size > 0:
             delattr(self.discriminator.deberta.embeddings.token_type_embeddings, "weight")
 
-    def from_pretrained(self, pretrained_model_name_or_path: str | os.PathLike, *args: Any, **kwargs: Any) -> None:
-        self.generator.from_pretrained(os.path.join(pretrained_model_name_or_path, "generator"), *args, **kwargs)
-        self.discriminator.from_pretrained(pretrained_model_name_or_path, *args, **kwargs)
+    @classmethod
+    def from_pretrained(
+        cls,
+        pretrained_model_name_or_path: str | os.PathLike,
+        config: PretrainedConfig | str | os.PathLike | None = None,
+        config_generator: PretrainedConfig | str | os.PathLike | None = None,
+        loss_weight_lambda: float = 50.0,
+        **kwargs: Any,
+    ) -> "DebertaV3ForPreTraining":
+        if not isinstance(config, PretrainedConfig):
+            config_path = config if config is not None else pretrained_model_name_or_path
+            config = DebertaV2Config.from_pretrained(config_path)
+        if not isinstance(config_generator, PretrainedConfig):
+            config_generator_path = config_generator if config_generator is not None else pretrained_model_name_or_path
+            config_generator = DebertaV2Config.from_pretrained(config_generator_path)
+        config.name_or_path = pretrained_model_name_or_path
+        config_generator.name_or_path = pretrained_model_name_or_path
 
-        delattr(self.discriminator.deberta.embeddings.word_embeddings, "weight")
-        if self.config.position_biased_input:
-            delattr(self.discriminator.deberta.embeddings.position_embeddings, "weight")
-        if self.config.type_vocab_size > 0:
-            delattr(self.discriminator.deberta.embeddings.token_type_embeddings, "weight")
+        model = cls._from_config(
+            config,
+            config_generator=config_generator,
+            loss_weight_lambda=loss_weight_lambda,
+            torch_dtype=config.torch_dtype if hasattr(config, "torch_dtype") else None,
+        )
+
+        model.generator = DebertaV2ForMaskedLM.from_pretrained(
+            os.path.join(pretrained_model_name_or_path, "generator"), **kwargs
+        )
+        model.discriminator = DebertaV3ForReplacedTokenDetection.from_pretrained(
+            pretrained_model_name_or_path, **kwargs
+        )
+
+        return model
 
 
 class DebertaV3ForReplacedTokenDetection(DebertaV2PreTrainedModel):
@@ -221,8 +231,22 @@ class DebertaV3ForReplacedTokenDetection(DebertaV2PreTrainedModel):
 
         self.deberta = DebertaV2Model(config)
         self.discriminator_predictions = DebertaV3RTDHead(config)
+        self.init_discriminator_embeddings()
         # Initialize weights and apply final processing
         self.post_init()
+
+    def init_discriminator_embeddings(self) -> None:
+        """initialize discriminator's embedding for Gradient-Disentangled Embedding Sharing"""
+
+        def set_embeddings_weight_delta(embeddings: nn.Embedding) -> None:
+            embeddings.register_parameter("weight_delta", nn.Parameter(torch.zeros_like(embeddings.weight)))
+            delattr(embeddings, "weight")
+
+        set_embeddings_weight_delta(self.deberta.embeddings.word_embeddings)
+        if self.config.position_biased_input:
+            set_embeddings_weight_delta(self.deberta.embeddings.position_embeddings)
+        if self.config.type_vocab_size > 0:
+            set_embeddings_weight_delta(self.deberta.embeddings.token_type_embeddings)
 
     def forward(
         self,
