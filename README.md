@@ -30,7 +30,7 @@ print(type(model))
 ```
 
 ## Feature
-- The `DeBERTaV3ForPretraining` is designed for compatibility with both DeBERTaV2 and DeBERTaV3 models, allowing for seamless fine-tuning with DeBERTaV2 or further pre-training with DeBERTaV3 (Replace Token Detection).
+- The `DeBERTaV3ForPretraining` is designed for compatibility with both DeBERTaV2 and DeBERTaV3 models, allowing for seamless fine-tuning with DeBERTaV2 or further pre-training with DeBERTaV3 (Replaced Token Detection).
 - Pre-tokenization is not necessary:
   - Although Sentencepiece and Sudachi were utilized in the training of the Tokenizer, loading a pre-trained Tokenizer does not require Sudachi. For further details, refer to [this blog post](https://qiita.com/taku910/items/fbaeab4684665952d5a9).
 
