@@ -195,32 +195,43 @@ class DebertaV3ForPreTraining(DebertaV2PreTrainedModel):
         cls,
         pretrained_model_name_or_path: str | os.PathLike,
         config: PretrainedConfig | str | os.PathLike | None = None,
-        config_generator: PretrainedConfig | str | os.PathLike | None = None,
+        generator_config: PretrainedConfig | str | os.PathLike | None = None,
         loss_weight_lambda: float = 50.0,
         **kwargs: Any,
     ) -> "DebertaV3ForPreTraining":
-        if not isinstance(config, PretrainedConfig):
-            config_path = config if config is not None else pretrained_model_name_or_path
-            config = DebertaV2Config.from_pretrained(config_path)
-        if not isinstance(config_generator, PretrainedConfig):
-            config_generator_path = config_generator if config_generator is not None else pretrained_model_name_or_path
-            config_generator = DebertaV2Config.from_pretrained(config_generator_path)
+        discriminator_kwargs = kwargs
+        if config is not None:
+            if not isinstance(config, PretrainedConfig):
+                config = DebertaV2Config.from_pretrained(config)
+            discriminator_kwargs["config"] = config
+        else:
+            config = DebertaV2Config.from_pretrained(pretrained_model_name_or_path)
         config.name_or_path = pretrained_model_name_or_path
-        config_generator.name_or_path = pretrained_model_name_or_path
+
+        generator_kwargs = kwargs
+        if generator_config is not None:
+            if not isinstance(generator_config, PretrainedConfig):
+                generator_config = DebertaV2Config.from_pretrained(generator_config)
+            generator_kwargs["config"] = generator_config
+        else:
+            generator_config = DebertaV2Config.from_pretrained(pretrained_model_name_or_path)
+        generator_config.name_or_path = pretrained_model_name_or_path
+
+        discriminator = DebertaV3ForReplacedTokenDetection.from_pretrained(
+            pretrained_model_name_or_path, **discriminator_kwargs
+        )
+        generator = DebertaV2ForMaskedLM.from_pretrained(
+            os.path.join(pretrained_model_name_or_path, "generator"), **generator_kwargs
+        )
 
         model = cls._from_config(
             config,
-            config_generator=config_generator,
+            generator_config=generator_config,
             loss_weight_lambda=loss_weight_lambda,
-            torch_dtype=config.torch_dtype if hasattr(config, "torch_dtype") else None,
+            torch_dtype=discriminator.dtype,
         )
-
-        model.generator = DebertaV2ForMaskedLM.from_pretrained(
-            os.path.join(pretrained_model_name_or_path, "generator"), **kwargs
-        )
-        model.discriminator = DebertaV3ForReplacedTokenDetection.from_pretrained(
-            pretrained_model_name_or_path, **kwargs
-        )
+        model.discriminator = discriminator
+        model.generator = generator
 
         return model
 

@@ -83,9 +83,7 @@ def train_model(config: dict[str, Any], resume_from_run_id: str | None = None, d
     else:
         trainer.train()
 
-    save_path = Path("models") / config["model_name"]
-    os.makedirs(save_path, exist_ok=True)
-    trainer.save_model(save_path)
+    trainer.model.save_pretrained(Path("models") / config["model_name"])
 
 
 def main() -> None:
