@@ -25,8 +25,8 @@ from src.utils import cpu_count
 def train_model(config: dict[str, Any], resume_from_run_id: str | None = None, debug: bool = False) -> None:
     load_dotenv()
 
-    config_discriminator = DebertaV2Config(**config["model"]["discriminator"])
-    config_generator = DebertaV2Config(**config["model"]["generator"])
+    discriminator_config = DebertaV2Config(**config["model"]["discriminator"])
+    generator_config = DebertaV2Config(**config["model"]["generator"])
 
     tokenizer = DebertaV2TokenizerFast.from_pretrained(Path("models") / config["model_name"])
     tokenizer.deprecation_warnings["Asking-to-pad-a-fast-tokenizer"] = True
@@ -50,8 +50,8 @@ def train_model(config: dict[str, Any], resume_from_run_id: str | None = None, d
         dataset_dict["test"] = dataset_dict["test"].select(range(1600))
 
     model = DebertaV3ForPreTraining._from_config(
-        config=config_discriminator,
-        config_generator=config_generator,
+        config=discriminator_config,
+        generator_config=generator_config,
         torch_dtype=getattr(torch, config["model"].get("torch_dtype", None)),
     )
 

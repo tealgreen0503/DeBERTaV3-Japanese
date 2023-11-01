@@ -35,11 +35,11 @@ class DebertaV3ForReplacedTokenDetectionOutput(ModelOutput):
 
 class DebertaV3ForPreTraining(DebertaV2PreTrainedModel):
     def __init__(
-        self, config: PretrainedConfig, config_generator: PretrainedConfig, loss_weight_lambda: float = 50.0
+        self, config: PretrainedConfig, generator_config: PretrainedConfig, loss_weight_lambda: float = 50.0
     ) -> None:
         super().__init__(config)
 
-        self.generator = DebertaV2ForMaskedLM(config_generator)
+        self.generator = DebertaV2ForMaskedLM(generator_config)
         self.discriminator = DebertaV3ForReplacedTokenDetection(config)
         self.loss_weight_lambda = loss_weight_lambda
 
