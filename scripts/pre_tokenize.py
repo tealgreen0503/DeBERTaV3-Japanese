@@ -94,7 +94,7 @@ def preprocess(text: str) -> str:
 
 
 def pre_tokenize(text: str, tokenizer: sudachipy.Tokenizer) -> str:
-    """split by sudachi tokenizer and space"""
+    """Split by Sudachi tokenizer and whitespace"""
     return DELIMITER.join([split_by_space(m.surface()) for m in tokenizer.tokenize(text.strip())])
 
 
