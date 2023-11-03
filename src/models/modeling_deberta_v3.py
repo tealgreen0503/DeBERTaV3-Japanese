@@ -197,19 +197,19 @@ class DebertaV3ForPreTraining(DebertaV2PreTrainedModel):
         if config is not None:
             if not isinstance(config, PretrainedConfig):
                 config = DebertaV2Config.from_pretrained(config)
+            config.name_or_path = pretrained_model_name_or_path
             discriminator_kwargs["config"] = config
         else:
             config = DebertaV2Config.from_pretrained(pretrained_model_name_or_path)
-        config.name_or_path = pretrained_model_name_or_path
 
         generator_kwargs = kwargs
         if generator_config is not None:
             if not isinstance(generator_config, PretrainedConfig):
                 generator_config = DebertaV2Config.from_pretrained(generator_config)
+            generator_config.name_or_path = pretrained_model_name_or_path
             generator_kwargs["config"] = generator_config
         else:
             generator_config = DebertaV2Config.from_pretrained(pretrained_model_name_or_path)
-        generator_config.name_or_path = pretrained_model_name_or_path
 
         discriminator = DebertaV3ForReplacedTokenDetection.from_pretrained(
             pretrained_model_name_or_path, **discriminator_kwargs
