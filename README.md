@@ -11,7 +11,7 @@ poetry run pip install multiprocess==0.70.15  # cf. https://github.com/huggingfa
 ```sh
 poetry run python -m scripts.pre_tokenize --config_file config/deberta-v3-xsmall.yaml
 poetry run python -m scripts.train_tokenizer --config_file config/deberta-v3-xsmall.yaml
-poetry run accelerate launch --config_file config/accelerate_config_zero3.yaml -m scripts.train_model --config_file config/deberta-v3-xsmall.yaml
+poetry run accelerate launch --config_file config/accelerate_config_zero2.yaml -m scripts.train_model --config_file config/deberta-v3-xsmall.yaml
 ```
 
 ### Loading Pre-trained Model
@@ -34,7 +34,7 @@ print(type(model))
 - Pre-tokenization is not necessary:
   - Although Sentencepiece and Sudachi were utilized in the training of the Tokenizer, loading a pre-trained Tokenizer does not require Sudachi. For further details, refer to [this blog post](https://qiita.com/taku910/items/fbaeab4684665952d5a9).
 
-## Evaluation
+## JGLUE Score
 - WIP
 
 ## References
