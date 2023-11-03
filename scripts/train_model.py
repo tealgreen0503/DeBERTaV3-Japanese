@@ -1,5 +1,6 @@
 import argparse
 import os
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -28,7 +29,7 @@ def train_model(config: dict[str, Any], resume_from_run_id: str | None = None, d
     discriminator_config = DebertaV2Config(**config["model"]["discriminator"])
     generator_config = DebertaV2Config(**config["model"]["generator"])
 
-    tokenizer = DebertaV2TokenizerFast.from_pretrained(Path("models") / config["model_name"])
+    tokenizer = DebertaV2TokenizerFast.from_pretrained("models/tokenizer")
     tokenizer.deprecation_warnings["Asking-to-pad-a-fast-tokenizer"] = True
     text_segmenter = pysbd.Segmenter(language="ja", clean=False, char_span=True)
 
@@ -40,7 +41,7 @@ def train_model(config: dict[str, Any], resume_from_run_id: str | None = None, d
             batch_preprocess,
             batched=True,
             remove_columns="text",
-            fn_kwargs={"tokenizer": tokenizer, "text_segmenter": text_segmenter},
+            fn_kwargs={"tokenizer": tokenizer, "text_segmenter": text_segmenter, "max_length": config["max_length"]},
             num_proc=cpu_count(),
         )
         dataset_dict.save_to_disk("data/encoded", num_proc=cpu_count())
@@ -49,10 +50,11 @@ def train_model(config: dict[str, Any], resume_from_run_id: str | None = None, d
         dataset_dict["validation"] = dataset_dict["validation"].select(range(1600))
         dataset_dict["test"] = dataset_dict["test"].select(range(1600))
 
+    torch_dtype = config["model"].get("torch_dtype", None)
     model = DebertaV3ForPreTraining._from_config(
         config=discriminator_config,
         generator_config=generator_config,
-        torch_dtype=getattr(torch, config["model"].get("torch_dtype", None)),
+        torch_dtype=getattr(torch, torch_dtype) if torch_dtype is not None else None,
     )
 
     data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer)
@@ -83,7 +85,11 @@ def train_model(config: dict[str, Any], resume_from_run_id: str | None = None, d
     else:
         trainer.train()
 
-    trainer.model.save_pretrained(Path("models") / config["model_name"])
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        trainer.model.save_pretrained(tmp_dir)
+        model = DebertaV3ForPreTraining.from_pretrained(tmp_dir)
+        model.save_pretrained(Path("models") / config["model_name"])
+        tokenizer.save_pretrained(Path("models") / config["model_name"])
 
 
 def main() -> None:

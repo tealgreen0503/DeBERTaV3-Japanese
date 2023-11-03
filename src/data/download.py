@@ -1,4 +1,3 @@
-import logging
 import os
 from typing import Literal
 
@@ -11,22 +10,19 @@ from src.data.filters import (
     is_japanese,
     is_not_ad_content,
     is_not_empty,
-    is_not_footer_header_noisy_oscar,
-    is_valid_domain,
+    is_not_footer_header_noisy_for_oscar,
+    is_valid_domain_for_oscar,
     remove_empty_parenthesis,
     remove_wikipedia_footnote,
 )
 from src.utils import cpu_count
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 
 def download_dataset(
     dataset_names: list[Literal["wikipedia", "cc100", "oscar"]], seed: int = 42, is_training_tokenizer: bool = False
 ) -> DatasetDict:
     if is_training_tokenizer:
-        dataset_names = list(set(dataset_names))
+        dataset_names = sorted(set(dataset_names), key=dataset_names.index)
 
     dataset_dicts: list[DatasetDict] = []
     for dataset_name in dataset_names:
@@ -43,13 +39,15 @@ def download_dataset(
     dataset_dict = DatasetDict()
     if is_training_tokenizer:
         sampled_datasets: list[Dataset] = []
-        for _dataset_dict in dataset_dicts:
-            # Sample 1GB of data from each train dataset
-            dataset = _dataset_dict["train"]
-            sample_size = 1e9 / dataset.size_in_bytes
-            assert sample_size <= 1
-            sampled_dataset, _ = dataset.train_test_split(train_size=sample_size, shuffle=True, seed=seed).values()
-            sampled_datasets.append(sampled_dataset)
+        for dataset_dict_ in dataset_dicts:
+            # Sample 4GB of data from each train dataset
+            dataset = dataset_dict_["train"]
+            sample_size = 4e9 / dataset.size_in_bytes
+            if sample_size <= 1:
+                sampled_dataset, _ = dataset.train_test_split(train_size=sample_size, shuffle=True, seed=seed).values()
+                sampled_datasets.append(sampled_dataset)
+            else:
+                sampled_datasets.append(dataset)
         dataset_dict["train"] = datasets.concatenate_datasets(sampled_datasets, split=datasets.Split.TRAIN)
     else:
         for split in ["train", "validation", "test"]:
@@ -66,12 +64,11 @@ def download_wikipedia(seed: int) -> DatasetDict:
         dataset = load_dataset(
             "wikipedia",
             language="ja",
-            date="20231020",
+            date="20231101",
             beam_runner="DirectRunner",
             split=datasets.Split.TRAIN,
             num_proc=cpu_count(),
-        ).remove_columns(["id", "url", "title"])
-        logger.info(f"Completed downloading {dataset.info.dataset_name}: size={dataset.size_in_bytes / 1e9:.2f}GB")
+        ).select_columns("text")
 
         dataset = dataset.filter(is_not_empty(), num_proc=cpu_count())
         dataset = dataset.map(remove_wikipedia_footnote(), batched=True, num_proc=cpu_count())
@@ -91,10 +88,9 @@ def download_cc100(seed: int) -> DatasetDict:
     if os.path.isdir("data/filtered/cc100"):
         return datasets.load_from_disk("data/filtered/cc100")
     else:
-        dataset = load_dataset(
-            "cc100", lang="ja", split=datasets.Split.TRAIN, streaming=True, num_proc=cpu_count()
-        ).remove_columns("id")
-        logger.info(f"Completed downloading {dataset.info.dataset_name}: size={dataset.size_in_bytes / 1e9:.2f}GB")
+        dataset = load_dataset("range3/cc100-ja", split=datasets.Split.TRAIN, num_proc=cpu_count()).select_columns(
+            "text"
+        )
 
         dataset = dataset.filter(is_not_empty(), num_proc=cpu_count())
         dataset = dataset.filter(is_japanese(), num_proc=cpu_count())
@@ -116,19 +112,22 @@ def download_oscar(seed: int) -> DatasetDict:
     if os.path.isdir("data/filtered/oscar"):
         return datasets.load_from_disk("data/filtered/oscar")
     else:
+        from dotenv import load_dotenv
+
+        load_dotenv()
+
         dataset = load_dataset(
             "oscar-corpus/OSCAR-2301",
             language="ja",
             split=datasets.Split.TRAIN,
-            streaming=True,
+            token=os.getenv("HUGGINGFACE_ACCESS_TOKEN", None),
             num_proc=cpu_count(),
-        ).remove_columns("id")
-        logger.info(f"Completed downloading {dataset.info.dataset_name}: size={dataset.size_in_bytes / 1e9:.2f}GB")
+        ).select_columns(["text", "meta"])
 
         dataset = dataset.filter(is_not_empty(), num_proc=cpu_count())
         dataset = dataset.filter(is_japanese(), num_proc=cpu_count())
-        dataset = dataset.filter(is_not_footer_header_noisy_oscar(), num_proc=cpu_count())
-        dataset = dataset.filter(is_valid_domain("oscar"), num_proc=cpu_count())
+        dataset = dataset.filter(is_not_footer_header_noisy_for_oscar(), num_proc=cpu_count())
+        dataset = dataset.filter(is_valid_domain_for_oscar(), num_proc=cpu_count())
         dataset = dataset.filter(is_not_ad_content(), num_proc=cpu_count())
         dataset = dataset.filter(is_good_compression_ratio(), num_proc=cpu_count())
         dataset = dataset.remove_columns(["meta"], num_proc=cpu_count())

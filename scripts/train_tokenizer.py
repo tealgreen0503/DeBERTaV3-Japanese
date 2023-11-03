@@ -36,8 +36,6 @@ def train_tokenizer(config: dict[str, Any]) -> None:
     shutil.copy(spm_model_prefix + ".model", tokenizer_path)
     shutil.copy(spm_model_prefix + ".vocab", tokenizer_path)
 
-    shutil.copytree(tokenizer_path, Path("models") / config["model_name"])
-
 
 def convert_spm_kwargs(**kwargs: Any) -> str:
     kwarg_texts: list[str] = []

@@ -2,7 +2,7 @@ import math
 import zlib
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any
 from urllib.parse import urlparse
 
 import regex
@@ -31,28 +31,15 @@ def is_japanese() -> Callable[[dict[str, Any]], bool]:
     return is_valid
 
 
-def is_valid_domain(dataset_name: Literal["oscar", "mc4"]) -> Callable[[dict[str, Any]], bool]:
+def is_valid_domain_for_oscar() -> Callable[[dict[str, Any]], bool]:
     dict_path = Path(__file__).parent.joinpath("valid_domains.txt")
     valid_domains = set(dict_path.read_text().splitlines())
 
-    if dataset_name == "oscar":
-
-        def is_valid(example: dict[str, Any]) -> bool:
-            if example["meta"]["warc_headers"]["warc-target-uri"].startswith("https://ja.wikipedia.org/"):
-                return False
-            domain = urlparse(example["meta"]["warc_headers"]["warc-target-uri"]).hostname
-            return domain.split(".")[-1] in valid_domains
-
-    elif dataset_name == "mc4":
-
-        def is_valid(example: dict[str, Any]) -> bool:
-            if example["url"].startswith("https://ja.wikipedia.org/"):
-                return False
-            domain = urlparse(example["url"]).hostname
-            return domain.split(".")[-1] in valid_domains
-
-    else:
-        raise ValueError(f"Unsupported dataset: {dataset_name}")
+    def is_valid(example: dict[str, Any]) -> bool:
+        if example["meta"]["warc_headers"]["warc-target-uri"].startswith("https://ja.wikipedia.org/"):
+            return False
+        domain = urlparse(example["meta"]["warc_headers"]["warc-target-uri"]).hostname
+        return domain.split(".")[-1] in valid_domains
 
     return is_valid
 
@@ -67,7 +54,7 @@ def is_not_ad_content() -> Callable[[dict[str, Any]], bool]:
     return is_valid
 
 
-def is_not_footer_header_noisy_oscar() -> Callable[[dict[str, Any]], bool]:
+def is_not_footer_header_noisy_for_oscar() -> Callable[[dict[str, Any]], bool]:
     filterd_tag = {"header", "footer", "noisy"}
 
     def is_valid(example: dict[str, Any]) -> bool:

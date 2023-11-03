@@ -106,7 +106,7 @@ class DebertaV3ForPreTraining(DebertaV2PreTrainedModel):
             generator_logits = generator_outputs.logits if return_dict else generator_outputs[1]
             generator_predictions = torch.argmax(generator_logits[masked_positions], dim=-1)
 
-            discriminator_input_ids = input_ids.clone()
+            discriminator_input_ids = torch.empty_like(input_ids).copy_(input_ids)
             discriminator_input_ids[masked_positions] = generator_predictions
 
             discriminator_labels = None
