@@ -4,6 +4,8 @@ seed: &seed 42
 
 dataset_names:
   - wikipedia
+  - cc100
+  - oscar
 
 sentencepiece:
   model_type: unigram
@@ -79,13 +81,13 @@ model:
     num_hidden_layers: 6
     type_vocab_size: 0
     vocab_size: 32001
-  torch_dtype: bfloat16
+  # torch_dtype: bfloat16
 
 trainer:
   evaluation_strategy: steps
-  per_device_train_batch_size: 16
-  per_device_eval_batch_size: 16
-  gradient_accumulation_steps: 10
+  per_device_train_batch_size: 32
+  per_device_eval_batch_size: 32
+  gradient_accumulation_steps: 256
   learning_rate: 6.0e-4
   weight_decay: 0.01
   adam_beta1: 0.9
@@ -104,6 +106,7 @@ trainer:
   seed: *seed
   data_seed: *seed
   bf16: true
+  bf16_full_eval: false
   eval_steps: 10000
   run_name: *model_name
   disable_tqdm: false
@@ -111,7 +114,10 @@ trainer:
   metric_for_best_model: loss
   greater_is_better: false
   optim: adamw_torch
-  group_by_length: false
+  group_by_length: true
   report_to: wandb
+  gradient_checkpointing: false
   full_determinism: false
   torch_compile: true
+
+max_length: 512

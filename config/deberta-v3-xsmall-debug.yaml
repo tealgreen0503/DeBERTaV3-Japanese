@@ -79,7 +79,7 @@ model:
     num_hidden_layers: 6
     type_vocab_size: 0
     vocab_size: 32001
-  torch_dtype: bfloat16
+  # torch_dtype: bfloat16
 
 trainer:
   evaluation_strategy: steps
@@ -117,3 +117,5 @@ trainer:
   gradient_checkpointing: false
   full_determinism: false
   torch_compile: true
+
+max_length: 512
