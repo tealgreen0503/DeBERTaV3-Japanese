@@ -3,9 +3,9 @@
 ## Usage
 ### Setup
 ```sh
-cp .env.example .env  # set your WandB API Key
+cp .env.example .env  # and edit .env
 poetry install
-poetry run pip install multiprocess==0.70.15  # cf. https://github.com/huggingface/datasets/issues/5613
+poetry run pip install apache-beam  # cf. https://github.com/huggingface/datasets/issues/5613
 ```
 ### Training
 ```sh
