@@ -6,46 +6,54 @@ from urllib.parse import urlparse
 import regex
 
 
-def is_not_empty() -> Callable[[dict[str, Any]], bool]:
-    def is_valid(example: dict[str, Any]) -> bool:
-        return example["text"].strip() != ""
+def is_not_empty() -> Callable[[dict[str, list[Any]]], list[bool]]:
+    def is_valid(text: str) -> bool:
+        return text.strip() != ""
 
-    return is_valid
+    def batch_is_valid(examples: dict[str, list[Any]]) -> list[bool]:
+        return [is_valid(text) for text in examples["text"]]
+
+    return batch_is_valid
 
 
-def is_valid_japanese() -> Callable[[dict[str, Any]], bool]:
+def is_valid_japanese() -> Callable[[dict[str, list[Any]]], list[bool]]:
     hiragana_katakana_regex = regex.compile(r"[ぁ-んァ-ン]")
 
-    def is_valid(example: dict[str, Any]) -> bool:
-        text = example["text"]
+    def is_valid(text: str) -> bool:
         return "。" in text and bool(hiragana_katakana_regex.search(text[:100]))
 
-    return is_valid
+    def batch_is_valid(examples: dict[str, list[Any]]) -> list[bool]:
+        return [is_valid(text) for text in examples["text"]]
+
+    return batch_is_valid
 
 
-def is_valid_domain_for_oscar() -> Callable[[dict[str, Any]], bool]:
+def is_valid_domain_for_oscar() -> Callable[[dict[str, list[Any]]], list[bool]]:
     dict_path = Path(__file__).parent.joinpath("valid_domains.txt")
     valid_domains = set(dict_path.read_text().splitlines())
 
-    def is_valid(example: dict[str, Any]) -> bool:
-        url = example["meta"]["warc_headers"]["warc-target-uri"]
-        if isinstance(url, str) and url.startswith("https://ja.wikipedia.org/"):
+    def is_valid(url: str) -> bool:
+        if url.startswith("https://ja.wikipedia.org/"):
             return False
         domain = urlparse(url).hostname
-        return domain.rsplit(".", 1)[-1] in valid_domains if domain is not None else False
+        return domain.rsplit(".", 1)[1] in valid_domains if domain is not None else False
 
-    return is_valid
+    def batch_is_valid(examples: dict[str, list[Any]]) -> list[bool]:
+        return [is_valid(meta["warc_headers"]["warc-target-uri"]) for meta in examples["meta"]]
+
+    return batch_is_valid
 
 
-def is_not_footer_header_noisy_for_oscar() -> Callable[[dict[str, Any]], bool]:
+def is_not_footer_header_noisy_for_oscar() -> Callable[[dict[str, Any]], list[bool]]:
     filterd_tag = {"header", "footer", "noisy"}
 
-    def is_valid(example: dict[str, Any]) -> bool:
-        return (quality_warnings := example["meta"]["quality_warnings"]) is None or not bool(
-            set(quality_warnings) & filterd_tag
-        )
+    def is_valid(quality_warnings: list[str] | None) -> bool:
+        return quality_warnings is None or not bool(set(quality_warnings) & filterd_tag)
 
-    return is_valid
+    def batch_is_valid(examples: dict[str, list[Any]]) -> list[bool]:
+        return [is_valid(meta["quality_warnings"]) for meta in examples["meta"]]
+
+    return batch_is_valid
 
 
 def remove_wikipedia_footnote() -> Callable[[dict[str, list[Any]]], dict[str, list[Any]]]:

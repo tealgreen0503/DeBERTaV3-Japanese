@@ -65,10 +65,14 @@ def download_wikipedia(seed: int) -> DatasetDict:
             "wikipedia", language="ja", date="20231101", beam_runner="DirectRunner", split=datasets.Split.TRAIN
         ).select_columns("text")
 
-        dataset = dataset.filter(is_not_empty(), num_proc=cpu_count())
-        dataset = dataset.filter(is_valid_japanese(), num_proc=cpu_count())
-        dataset = dataset.map(remove_wikipedia_footnote(), batched=True, num_proc=cpu_count())
-        dataset = dataset.map(remove_empty_parenthesis(), batched=True, num_proc=cpu_count())
+        dataset = dataset.filter(is_not_empty(), batched=True, load_from_cache_file=False, num_proc=cpu_count())
+        dataset = dataset.filter(is_valid_japanese(), batched=True, load_from_cache_file=False, num_proc=cpu_count())
+        dataset = dataset.map(
+            remove_wikipedia_footnote(), batched=True, load_from_cache_file=False, num_proc=cpu_count()
+        )
+        dataset = dataset.map(
+            remove_empty_parenthesis(), batched=True, load_from_cache_file=False, num_proc=cpu_count()
+        )
 
         dataset_dict = DatasetDict()
         dataset_dict["train"], valid_test_dataset = dataset.train_test_split(test_size=0.1, seed=seed).values()
@@ -88,8 +92,8 @@ def download_cc100(seed: int) -> DatasetDict:
             "text"
         )
 
-        dataset = dataset.filter(is_not_empty(), num_proc=cpu_count())
-        dataset = dataset.filter(is_valid_japanese(), num_proc=cpu_count())
+        dataset = dataset.filter(is_not_empty(), batched=True, load_from_cache_file=False, num_proc=cpu_count())
+        dataset = dataset.filter(is_valid_japanese(), batched=True, load_from_cache_file=False, num_proc=cpu_count())
 
         dataset_dict = DatasetDict()
         dataset_dict["train"], valid_test_dataset = dataset.train_test_split(test_size=0.1, seed=seed).values()
@@ -117,10 +121,15 @@ def download_oscar(seed: int) -> DatasetDict:
             num_proc=cpu_count(),
         ).select_columns(["text", "meta"])
 
-        dataset = dataset.filter(is_not_footer_header_noisy_for_oscar(), num_proc=cpu_count())
-        dataset = dataset.filter(is_valid_domain_for_oscar(), num_proc=cpu_count())
-        dataset = dataset.filter(is_not_empty(), num_proc=cpu_count())
-        dataset = dataset.filter(is_valid_japanese(), num_proc=cpu_count())
+        dataset = dataset.filter(
+            is_not_footer_header_noisy_for_oscar(), batched=True, load_from_cache_file=False, num_proc=cpu_count()
+        )
+        dataset = dataset.filter(
+            is_valid_domain_for_oscar(), batched=True, load_from_cache_file=False, num_proc=cpu_count()
+        )
+        dataset = dataset.remove_columns("meta")
+        dataset = dataset.filter(is_not_empty(), batched=True, load_from_cache_file=False, num_proc=cpu_count())
+        dataset = dataset.filter(is_valid_japanese(), batched=True, load_from_cache_file=False, num_proc=cpu_count())
 
         dataset_dict = DatasetDict()
         dataset_dict["train"], valid_test_dataset = dataset.train_test_split(test_size=0.1, seed=seed).values()
