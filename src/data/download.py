@@ -1,21 +1,21 @@
 import os
+import warnings
 from typing import Literal
 
 import datasets
 from datasets import Dataset, DatasetDict, load_dataset
 
 from src.data.filters import (
-    extract_japanese_text,
-    is_good_compression_ratio,
-    is_japanese,
-    is_not_ad_content,
     is_not_empty,
     is_not_footer_header_noisy_for_oscar,
     is_valid_domain_for_oscar,
+    is_valid_japanese,
     remove_empty_parenthesis,
     remove_wikipedia_footnote,
 )
 from src.utils import cpu_count
+
+warnings.simplefilter("ignore", FutureWarning)
 
 
 def download_dataset(
@@ -43,7 +43,7 @@ def download_dataset(
             # Sample 4GB of data from each train dataset
             dataset = dataset_dict_["train"]
             sample_size = 4e9 / dataset.size_in_bytes
-            if sample_size <= 1:
+            if sample_size < 1:
                 sampled_dataset, _ = dataset.train_test_split(train_size=sample_size, shuffle=True, seed=seed).values()
                 sampled_datasets.append(sampled_dataset)
             else:
@@ -52,7 +52,7 @@ def download_dataset(
     else:
         for split in ["train", "validation", "test"]:
             dataset_dict[split] = datasets.concatenate_datasets(
-                [dataset_dict[split] for dataset_dict in dataset_dicts], split=datasets.Split(split)
+                [dataset_dict_[split] for dataset_dict_ in dataset_dicts], split=datasets.Split(split)
             )
     return dataset_dict
 
@@ -62,15 +62,11 @@ def download_wikipedia(seed: int) -> DatasetDict:
         return datasets.load_from_disk("data/filtered/wikipedia")
     else:
         dataset = load_dataset(
-            "wikipedia",
-            language="ja",
-            date="20231101",
-            beam_runner="DirectRunner",
-            split=datasets.Split.TRAIN,
-            num_proc=cpu_count(),
+            "wikipedia", language="ja", date="20231101", beam_runner="DirectRunner", split=datasets.Split.TRAIN
         ).select_columns("text")
 
         dataset = dataset.filter(is_not_empty(), num_proc=cpu_count())
+        dataset = dataset.filter(is_valid_japanese(), num_proc=cpu_count())
         dataset = dataset.map(remove_wikipedia_footnote(), batched=True, num_proc=cpu_count())
         dataset = dataset.map(remove_empty_parenthesis(), batched=True, num_proc=cpu_count())
 
@@ -93,10 +89,7 @@ def download_cc100(seed: int) -> DatasetDict:
         )
 
         dataset = dataset.filter(is_not_empty(), num_proc=cpu_count())
-        dataset = dataset.filter(is_japanese(), num_proc=cpu_count())
-        dataset = dataset.filter(is_not_ad_content(), num_proc=cpu_count())
-        dataset = dataset.filter(is_good_compression_ratio(), num_proc=cpu_count())
-        dataset = dataset.map(extract_japanese_text(), batched=True, num_proc=cpu_count())
+        dataset = dataset.filter(is_valid_japanese(), num_proc=cpu_count())
 
         dataset_dict = DatasetDict()
         dataset_dict["train"], valid_test_dataset = dataset.train_test_split(test_size=0.1, seed=seed).values()
@@ -124,14 +117,10 @@ def download_oscar(seed: int) -> DatasetDict:
             num_proc=cpu_count(),
         ).select_columns(["text", "meta"])
 
-        dataset = dataset.filter(is_not_empty(), num_proc=cpu_count())
-        dataset = dataset.filter(is_japanese(), num_proc=cpu_count())
         dataset = dataset.filter(is_not_footer_header_noisy_for_oscar(), num_proc=cpu_count())
         dataset = dataset.filter(is_valid_domain_for_oscar(), num_proc=cpu_count())
-        dataset = dataset.filter(is_not_ad_content(), num_proc=cpu_count())
-        dataset = dataset.filter(is_good_compression_ratio(), num_proc=cpu_count())
-        dataset = dataset.remove_columns(["meta"], num_proc=cpu_count())
-        dataset = dataset.map(extract_japanese_text(), batched=True, num_proc=cpu_count())
+        dataset = dataset.filter(is_not_empty(), num_proc=cpu_count())
+        dataset = dataset.filter(is_valid_japanese(), num_proc=cpu_count())
 
         dataset_dict = DatasetDict()
         dataset_dict["train"], valid_test_dataset = dataset.train_test_split(test_size=0.1, seed=seed).values()
