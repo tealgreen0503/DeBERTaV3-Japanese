@@ -40,9 +40,9 @@ def download_dataset(
     if is_training_tokenizer:
         sampled_datasets: list[Dataset] = []
         for dataset_dict_ in dataset_dicts:
-            # Sample 4GB of data from each train dataset
+            # Sample 3GB of data from each train dataset
             dataset = dataset_dict_["train"]
-            sample_size = 4e9 / dataset.size_in_bytes
+            sample_size = 3e9 / dataset.size_in_bytes
             if sample_size < 1:
                 sampled_dataset, _ = dataset.train_test_split(train_size=sample_size, shuffle=True, seed=seed).values()
                 sampled_datasets.append(sampled_dataset)
@@ -50,10 +50,22 @@ def download_dataset(
                 sampled_datasets.append(dataset)
         dataset_dict["train"] = datasets.concatenate_datasets(sampled_datasets, split=datasets.Split.TRAIN)
     else:
-        for split in ["train", "validation", "test"]:
-            dataset_dict[split] = datasets.concatenate_datasets(
-                [dataset_dict_[split] for dataset_dict_ in dataset_dicts], split=datasets.Split(split)
-            )
+        dataset_dict["train"] = datasets.concatenate_datasets(
+            [dataset_dict_["train"] for dataset_dict_ in dataset_dicts], split=datasets.Split.TRAIN
+        )
+        validation_datasets: list[Dataset] = []
+        validation_dataset_names: set[str] = set()
+        for dataset_dict_ in dataset_dicts:
+            dataset = dataset_dict_["validation"]
+            if dataset.info.dataset_name not in validation_dataset_names:
+                validation_datasets.append(dataset)
+                validation_dataset_names.add(dataset.info.dataset_name)
+            else:
+                del dataset
+        dataset_dict["validation"] = datasets.concatenate_datasets(
+            validation_datasets, split=datasets.Split.VALIDATION
+        )
+
     return dataset_dict
 
 
@@ -75,9 +87,8 @@ def download_wikipedia(seed: int) -> DatasetDict:
         )
 
         dataset_dict = DatasetDict()
-        dataset_dict["train"], valid_test_dataset = dataset.train_test_split(test_size=0.1, seed=seed).values()
-        dataset_dict["validation"], dataset_dict["test"] = valid_test_dataset.train_test_split(
-            test_size=0.5, seed=seed
+        dataset_dict["train"], dataset_dict["validation"] = dataset.train_test_split(
+            test_size=5000, seed=seed
         ).values()
 
         dataset_dict.save_to_disk("data/filtered/wikipedia", num_proc=cpu_count())
@@ -96,9 +107,8 @@ def download_cc100(seed: int) -> DatasetDict:
         dataset = dataset.filter(is_valid_japanese(), batched=True, load_from_cache_file=False, num_proc=cpu_count())
 
         dataset_dict = DatasetDict()
-        dataset_dict["train"], valid_test_dataset = dataset.train_test_split(test_size=0.1, seed=seed).values()
-        dataset_dict["validation"], dataset_dict["test"] = valid_test_dataset.train_test_split(
-            test_size=0.5, seed=seed
+        dataset_dict["train"], dataset_dict["validation"] = dataset.train_test_split(
+            test_size=5000, seed=seed
         ).values()
 
         dataset_dict.save_to_disk("data/filtered/cc100", num_proc=cpu_count())
@@ -132,9 +142,8 @@ def download_oscar(seed: int) -> DatasetDict:
         dataset = dataset.filter(is_valid_japanese(), batched=True, load_from_cache_file=False, num_proc=cpu_count())
 
         dataset_dict = DatasetDict()
-        dataset_dict["train"], valid_test_dataset = dataset.train_test_split(test_size=0.1, seed=seed).values()
-        dataset_dict["validation"], dataset_dict["test"] = valid_test_dataset.train_test_split(
-            test_size=0.5, seed=seed
+        dataset_dict["train"], dataset_dict["validation"] = dataset.train_test_split(
+            test_size=5000, seed=seed
         ).values()
 
         dataset_dict.save_to_disk("data/filtered/oscar", num_proc=cpu_count())
