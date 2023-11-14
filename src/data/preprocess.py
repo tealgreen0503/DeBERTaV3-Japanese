@@ -57,10 +57,19 @@ def segment_text_into_sentences(
 
         if end_token_index_limit < encoding_length:
             end_char_index_limit = encoding.token_to_chars(end_token_index_limit)[1] - 1
+            # Search for the last char index that is less than or equal to end_char_index_limit
             end_char_index_candidates_index = bisect.bisect(end_char_index_candidates, end_char_index_limit) - 1
             if end_char_index_candidates_index >= 0:
                 end_char_index = end_char_index_candidates[end_char_index_candidates_index]
-                end_token_index = encoding.char_to_token(end_char_index)
+                end_token_index = encoding.char_to_token(end_char_index_candidates[end_char_index_candidates_index])
+                # When the end_token_index is None, search for the next end_char_index
+                while end_token_index is None:
+                    end_char_index_candidates_index -= 1
+                    if end_char_index_candidates_index < 0:
+                        end_token_index = end_token_index_limit
+                        break
+                    end_char_index = end_char_index_candidates[end_char_index_candidates_index]
+                    end_token_index = encoding.char_to_token(end_char_index)
                 end_char_index_candidates = end_char_index_candidates[end_char_index_candidates_index + 1 :]
             else:
                 end_token_index = end_token_index_limit
