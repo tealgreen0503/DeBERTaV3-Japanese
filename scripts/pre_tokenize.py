@@ -1,4 +1,5 @@
 import argparse
+import os
 import re
 import unicodedata
 from functools import partial
@@ -25,6 +26,7 @@ def save_pre_tokenized_text(config: dict[str, Any]) -> None:
     dataset_dict = download_dataset(config["dataset_names"], seed=config["seed"], is_training_tokenizer=True)
     raw_texts = dataset_dict["train"]["text"]
 
+    os.makedirs("data/pre_tokenized", exist_ok=True)
     with open("data/pre_tokenized/train.txt", "w") as f:
         with Pool(cpu_count()) as pool:
             for pre_tokenized_texts in tqdm(
