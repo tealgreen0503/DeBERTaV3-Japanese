@@ -8,8 +8,8 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "~3.11"
 accelerate = "^0.24.1"
-datasets = "^2.14.6"
-deepspeed = "^0.11.1"
+datasets = "^2.15.0"
+deepspeed = "^0.12.3"
 mwparserfromhell = "^0.6.5"
 protobuf = "3.20.3"
 pysbd = "^0.3.4"
@@ -19,9 +19,9 @@ regex = "^2023.10.3"
 sentencepiece = "^0.1.99"
 sudachidict-core = "^20230927"
 sudachipy = "^0.6.7"
-torch = {version = "^2.1.0+cu121", source = "torch-cu121"}
-transformers = "^4.35.0"
-wandb = "^0.15.12"
+torch = {version = "^2.1.1+cu121", source = "torch-cu121"}
+transformers = "^4.35.2"
+wandb = "^0.16.0"
 zstandard = "^0.22.0"
 
 
