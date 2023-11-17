@@ -193,7 +193,7 @@ class DebertaV3ForPreTraining(DebertaV2PreTrainedModel):
         loss_weight_lambda: float = 50.0,
         **kwargs: Any,
     ) -> "DebertaV3ForPreTraining":
-        discriminator_kwargs = kwargs
+        discriminator_kwargs = kwargs.copy()
         if config is not None:
             if not isinstance(config, PretrainedConfig):
                 config = DebertaV2Config.from_pretrained(config)
@@ -202,7 +202,7 @@ class DebertaV3ForPreTraining(DebertaV2PreTrainedModel):
         else:
             config = DebertaV2Config.from_pretrained(pretrained_model_name_or_path)
 
-        generator_kwargs = kwargs
+        generator_kwargs = kwargs.copy()
         if generator_config is not None:
             if not isinstance(generator_config, PretrainedConfig):
                 generator_config = DebertaV2Config.from_pretrained(generator_config)
