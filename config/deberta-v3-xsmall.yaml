@@ -18,9 +18,17 @@ sentencepiece:
   split_by_whitespace: false
   split_digits: false
   allow_whitespace_only_pieces: true
-  user_defined_symbols: ["[PAD]", "[CLS]", "[SEP]", "[UNK]", "[MASK]"]
+  user_defined_symbols: ["[PAD]", "[CLS]", "[SEP]", "[MASK]"]
   normalization_rule_name: nmt_nfkc
   add_dummy_prefix: false
+  pad_id: 0
+  bos_id: 1
+  eos_id: 2
+  unk_id: 3
+  pad_piece: "[PAD]"
+  bos_piece: "[CLS]"
+  eos_piece: "[SEP]"
+  unk_piece: "[UNK]"
 
 tokenizer:
   do_lower_case: false
