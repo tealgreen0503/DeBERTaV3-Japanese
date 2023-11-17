@@ -41,7 +41,7 @@ class DebertaV3ForPreTraining(DebertaV2PreTrainedModel):
 
         self.generator = DebertaV2ForMaskedLM(generator_config)
         self.discriminator = DebertaV3ForReplacedTokenDetection(config)
-        self.loss_weight_lambda = loss_weight_lambda
+        self.register_buffer("loss_weight_lambda", torch.tensor(loss_weight_lambda))
 
         self.register_discriminator_forward_pre_hook()
 
@@ -49,28 +49,28 @@ class DebertaV3ForPreTraining(DebertaV2PreTrainedModel):
         """Register forward pre hook to set discriminator's embedding for Gradient-Disentangled Embedding Sharing"""
 
         def set_embeddings_weight_added_delta_as_buffer(
-            discriminator_embeddings: nn.Embedding, generator_embeddings_weight: nn.Parameter
+            discriminator_embeddings: nn.Embedding, generator_embeddings: nn.Embedding
         ) -> None:
             if hasattr(discriminator_embeddings, "weight"):
                 delattr(discriminator_embeddings, "weight")
             discriminator_embeddings.register_buffer(
-                "weight", generator_embeddings_weight.detach() + discriminator_embeddings.weight_delta
+                "weight", generator_embeddings.weight.detach() + discriminator_embeddings.weight_delta
             )
 
         def forward_pre_hook(module: nn.Module, *inputs: list[torch.Tensor]) -> None:
             set_embeddings_weight_added_delta_as_buffer(
                 self.discriminator.deberta.embeddings.word_embeddings,
-                self.generator.deberta.embeddings.word_embeddings.weight[:-1],
+                self.generator.deberta.embeddings.word_embeddings,
             )
             if self.config.position_biased_input:
                 set_embeddings_weight_added_delta_as_buffer(
                     self.discriminator.deberta.embeddings.position_embeddings,
-                    self.generator.deberta.embeddings.position_embeddings.weight,
+                    self.generator.deberta.embeddings.position_embeddings,
                 )
             if self.config.type_vocab_size > 0:
                 set_embeddings_weight_added_delta_as_buffer(
                     self.discriminator.deberta.embeddings.token_type_embeddings,
-                    self.generator.deberta.embeddings.token_type_embeddings.weight,
+                    self.generator.deberta.embeddings.token_type_embeddings,
                 )
 
         self.discriminator.register_forward_pre_hook(forward_pre_hook)
@@ -157,29 +157,29 @@ class DebertaV3ForPreTraining(DebertaV2PreTrainedModel):
         """Save discriminator's weights with for Gradient-Disentangled Embedding Sharing"""
 
         def set_embeddings_weight_added_delta_as_parameter(
-            discriminator_embeddings: nn.Embedding, generator_embeddings_weight: nn.Parameter
+            discriminator_embeddings: nn.Embedding, generator_embeddings: nn.Embedding
         ) -> None:
             if hasattr(discriminator_embeddings, "weight"):
                 delattr(discriminator_embeddings, "weight")
             discriminator_embeddings.register_parameter(
                 "weight",
-                nn.Parameter(generator_embeddings_weight.detach() + discriminator_embeddings.weight_delta.detach()),
+                nn.Parameter(generator_embeddings.weight.detach() + discriminator_embeddings.weight_delta.detach()),
             )
 
         set_embeddings_weight_added_delta_as_parameter(
             self.discriminator.deberta.embeddings.word_embeddings,
-            self.generator.deberta.embeddings.word_embeddings.weight[:-1],
+            self.generator.deberta.embeddings.word_embeddings,
         )
         if self.config.position_biased_input:
             set_embeddings_weight_added_delta_as_parameter(
                 self.discriminator.deberta.embeddings.position_embeddings,
-                self.generator.deberta.embeddings.position_embeddings.weight,
+                self.generator.deberta.embeddings.position_embeddings,
             )
 
         if self.config.type_vocab_size > 0:
             set_embeddings_weight_added_delta_as_parameter(
                 self.discriminator.deberta.embeddings.token_type_embeddings,
-                self.generator.deberta.embeddings.token_type_embeddings.weight,
+                self.generator.deberta.embeddings.token_type_embeddings,
             )
 
         self.discriminator.save_pretrained(save_directory, **kwargs)

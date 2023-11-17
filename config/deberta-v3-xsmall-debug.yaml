@@ -16,16 +16,9 @@ sentencepiece:
   split_by_whitespace: false
   split_digits: false
   allow_whitespace_only_pieces: true
+  user_defined_symbols: ["[PAD]", "[CLS]", "[SEP]", "[UNK]", "[MASK]"]
   normalization_rule_name: nmt_nfkc
   add_dummy_prefix: false
-  pad_id: 0
-  bos_id: 1
-  eos_id: 2
-  unk_id: 3
-  pad_piece: "[PAD]"
-  bos_piece: "[CLS]"
-  eos_piece: "[SEP]"
-  unk_piece: "[UNK]"
 
 tokenizer:
   do_lower_case: false
@@ -81,7 +74,7 @@ model:
     num_attention_heads: 6
     num_hidden_layers: 6
     type_vocab_size: 0
-    vocab_size: 32001
+    vocab_size: 32000
   # torch_dtype: bfloat16
 
 trainer:
