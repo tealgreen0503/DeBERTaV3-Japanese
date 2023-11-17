@@ -94,7 +94,7 @@ def train_model(config: dict[str, Any], resume_from_run_id: str | None = None, d
         trainer.train()
 
     with tempfile.TemporaryDirectory() as tmp_dir:
-        trainer.model.save_pretrained(tmp_dir)
+        trainer.model.save_pretrained(tmp_dir, safe_serialization=False)
         model = DebertaV3ForPreTraining.from_pretrained(tmp_dir)
         model.save_pretrained(Path("models") / config["model_name"])
         tokenizer.save_pretrained(Path("models") / config["model_name"])
