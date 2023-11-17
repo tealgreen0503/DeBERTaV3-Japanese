@@ -20,14 +20,13 @@ from src.utils import cpu_count
 def train_tokenizer(config: dict[str, Any]) -> None:
     spm_model_prefix = "models/sentencepiece/spm"
     os.makedirs(Path(spm_model_prefix).parent, exist_ok=True)
-    spm_kwargs = convert_spm_kwargs(
+    spm.SentencePieceTrainer.train(
         input="data/pre_tokenized/train.txt",
         model_prefix=spm_model_prefix,
         num_threads=cpu_count(),
         pretokenization_delimiter=DELIMITER,
         **config["sentencepiece"],
     )
-    spm.SentencePieceTrainer.train(spm_kwargs)
 
     tokenizer = create_tokenizer(f"{spm_model_prefix}.model", **config["tokenizer"])
 
@@ -35,16 +34,6 @@ def train_tokenizer(config: dict[str, Any]) -> None:
     tokenizer.save_pretrained(tokenizer_path)
     shutil.copy(spm_model_prefix + ".model", tokenizer_path)
     shutil.copy(spm_model_prefix + ".vocab", tokenizer_path)
-
-
-def convert_spm_kwargs(**kwargs: Any) -> str:
-    kwarg_texts: list[str] = []
-    for key, value in kwargs.items():
-        if isinstance(value, bool):
-            kwarg_texts.append(f"{key}={str(value).lower()}")
-        else:
-            kwarg_texts.append(f"{key}={value}")
-    return "--" + " --".join(kwarg_texts)
 
 
 def create_tokenizer(vocab_file: str, **kwargs: Any) -> PreTrainedTokenizerFast:

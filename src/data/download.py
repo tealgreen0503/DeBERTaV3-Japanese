@@ -40,14 +40,11 @@ def download_dataset(
     if is_training_tokenizer:
         sampled_datasets: list[Dataset] = []
         for dataset_dict_ in dataset_dicts:
-            # Sample 3GB of data from each train dataset
+            # Sample 1GB of data from each train dataset
             dataset = dataset_dict_["train"]
-            sample_size = 3e9 / dataset.size_in_bytes
-            if sample_size < 1:
-                sampled_dataset, _ = dataset.train_test_split(train_size=sample_size, shuffle=True, seed=seed).values()
-                sampled_datasets.append(sampled_dataset)
-            else:
-                sampled_datasets.append(dataset)
+            sample_size = 1024**3 / get_train_dataset_size(dataset_name)
+            sampled_dataset, _ = dataset.train_test_split(train_size=sample_size, shuffle=True, seed=seed).values()
+            sampled_datasets.append(sampled_dataset)
         dataset_dict["train"] = datasets.concatenate_datasets(sampled_datasets, split=datasets.Split.TRAIN)
     else:
         dataset_dict["train"] = datasets.concatenate_datasets(
@@ -55,11 +52,11 @@ def download_dataset(
         )
         validation_datasets: list[Dataset] = []
         validation_dataset_names: set[str] = set()
-        for dataset_dict_ in dataset_dicts:
+        for dataset_name, dataset_dict_ in zip(dataset_names, dataset_dicts, strict=True):
             dataset = dataset_dict_["validation"]
-            if dataset.info.dataset_name not in validation_dataset_names:
+            if dataset_name not in validation_dataset_names:
                 validation_datasets.append(dataset)
-                validation_dataset_names.add(dataset.info.dataset_name)
+                validation_dataset_names.add(dataset_name)
             else:
                 del dataset
         dataset_dict["validation"] = datasets.concatenate_datasets(
@@ -99,6 +96,7 @@ def download_cc100(seed: int) -> DatasetDict:
     if os.path.isdir("data/filtered/cc100"):
         return datasets.load_from_disk("data/filtered/cc100")
     else:
+        # The official CC-100 server is very slow.
         dataset = load_dataset("range3/cc100-ja", split=datasets.Split.TRAIN, num_proc=cpu_count()).select_columns(
             "text"
         )
@@ -148,3 +146,12 @@ def download_oscar(seed: int) -> DatasetDict:
 
         dataset_dict.save_to_disk("data/filtered/oscar", num_proc=cpu_count())
     return dataset_dict
+
+
+def get_train_dataset_size(dataset_name: Literal["wikipedia", "cc100", "oscar"]) -> int:
+    dataset_size = 0
+    with os.scandir(f"data/filtered/{dataset_name}/train") as it:
+        for entry in it:
+            if entry.is_file():
+                dataset_size += entry.stat().st_size
+    return dataset_size
