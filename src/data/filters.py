@@ -20,7 +20,7 @@ def is_valid_japanese() -> Callable[[dict[str, list[Any]]], list[bool]]:
     hiragana_katakana_regex = regex.compile(r"[ぁ-んァ-ン]")
 
     def is_valid(text: str) -> bool:
-        return "。" in text and bool(hiragana_katakana_regex.search(text[:100]))
+        return "。" in text and bool(hiragana_katakana_regex.search(text[:50]))
 
     def batch_is_valid(examples: dict[str, list[Any]]) -> list[bool]:
         return [is_valid(text) for text in examples["text"]]
