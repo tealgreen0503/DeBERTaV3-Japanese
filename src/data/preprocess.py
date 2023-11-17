@@ -23,7 +23,7 @@ def batch_preprocess(
     batch_input_ids = batch_segment_text_into_sentences(
         batch_encoding_fast, batch_example["text"], text_segmenter, max_length=max_length
     )
-    batch_encoding = batch_prepare_for_model(batch_input_ids, tokenizer)
+    batch_encoding = batch_prepare_for_model(batch_input_ids, tokenizer, max_length=max_length)
     return batch_encoding
 
 
@@ -82,9 +82,13 @@ def segment_text_into_sentences(
     return batch_input_ids
 
 
-def batch_prepare_for_model(batch_input_ids: Iterable[list[int]], tokenizer: PreTrainedTokenizerFast) -> BatchEncoding:
+def batch_prepare_for_model(
+    batch_input_ids: Iterable[list[int]], tokenizer: PreTrainedTokenizerFast, max_length: int = 512
+) -> BatchEncoding:
     encoding_dict_list = [
-        tokenizer.prepare_for_model(input_ids, add_special_tokens=True, padding=False, truncation=False)
+        tokenizer.prepare_for_model(
+            input_ids, add_special_tokens=True, padding=False, truncation=True, max_length=max_length
+        )
         for input_ids in batch_input_ids
     ]
     return BatchEncoding(
