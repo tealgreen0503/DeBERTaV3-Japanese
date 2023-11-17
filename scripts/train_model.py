@@ -60,8 +60,16 @@ def train_model(config: dict[str, Any], resume_from_run_id: str | None = None, d
     )
 
     if resume_from_run_id is not None:
+
+        def get_latest_checkpoint_path(checkpoint_dir: Path) -> Path:
+            checkpoint_paths = [
+                path for path in checkpoint_dir.iterdir() if path.is_dir() and "checkpoint-" in path.name
+            ]
+            return sorted(checkpoint_paths, key=lambda path: int(path.name.split("-")[1]))[-1]
+
         wandb.init(id=resume_from_run_id, name=config["model_name"] + f"-{resume_from_run_id}", resume="must")
         checkpoint_dir = Path("checkpoints") / config["model_name"] / f"run-{resume_from_run_id}"
+        latest_checkpoint_path = get_latest_checkpoint_path(checkpoint_dir)
     else:
         run_id = wandb.util.generate_id()
         wandb.init(id=run_id, name=config["model_name"] + f"-{run_id}")
@@ -81,7 +89,7 @@ def train_model(config: dict[str, Any], resume_from_run_id: str | None = None, d
     )
 
     if resume_from_run_id is not None:
-        trainer.train(resume_from_checkpoint=checkpoint_dir)
+        trainer.train(resume_from_checkpoint=latest_checkpoint_path)
     else:
         trainer.train()
 
