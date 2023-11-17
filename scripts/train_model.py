@@ -42,13 +42,15 @@ def train_model(config: dict[str, Any], resume_from_run_id: str | None = None, d
             batched=True,
             remove_columns="text",
             fn_kwargs={"tokenizer": tokenizer, "text_segmenter": text_segmenter, "max_length": config["max_length"]},
+            load_from_cache_file=False,
             num_proc=cpu_count(),
         )
         dataset_dict.save_to_disk("data/encoded", num_proc=cpu_count())
     if debug:
         dataset_dict["train"] = dataset_dict["train"].select(range(32000))
         dataset_dict["validation"] = dataset_dict["validation"].select(range(1600))
-        dataset_dict["test"] = dataset_dict["test"].select(range(1600))
+
+    data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, **config["data_collator"])
 
     torch_dtype = config["model"].get("torch_dtype", None)
     model = DebertaV3ForPreTraining._from_config(
@@ -56,8 +58,6 @@ def train_model(config: dict[str, Any], resume_from_run_id: str | None = None, d
         generator_config=generator_config,
         torch_dtype=getattr(torch, torch_dtype) if torch_dtype is not None else None,
     )
-
-    data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer)
 
     if resume_from_run_id is not None:
         wandb.init(id=resume_from_run_id, name=config["model_name"] + f"-{resume_from_run_id}", resume="must")
