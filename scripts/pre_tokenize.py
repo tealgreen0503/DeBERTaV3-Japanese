@@ -39,7 +39,8 @@ def save_pre_tokenized_text(config: dict[str, Any]) -> None:
 
 def pre_tokenize_process(raw_text: str, segmenter: pysbd.Segmenter, max_bytes: int) -> list[str]:
     # Create Sudachi Tokenizer here because it cannot be serialized.
-    tokenizer = sudachipy.Dictionary().create(mode=sudachipy.SplitMode.A)
+    # Disable IgnoreYomiganaPlugin by specifying config_path.
+    tokenizer = sudachipy.Dictionary(config_path="config/sudachi.json").create(mode=sudachipy.SplitMode.A)
 
     pre_tokenized_texts = []
     text = ""
