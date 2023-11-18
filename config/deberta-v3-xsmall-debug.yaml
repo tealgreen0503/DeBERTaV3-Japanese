@@ -55,7 +55,7 @@ model:
     position_buckets: 256
     norm_rel_ebd: layer_norm
     share_att_key: true
-    pos_att_type: p2c|c2p
+    pos_att_type: [p2c, c2p]
     layer_norm_eps: 1.0e-7
     max_relative_positions: -1
     position_biased_input: false
@@ -75,7 +75,7 @@ model:
     position_buckets: 256
     norm_rel_ebd: layer_norm
     share_att_key: true
-    pos_att_type: p2c|c2p
+    pos_att_type: [p2c, c2p]
     layer_norm_eps: 1.0e-7
     max_relative_positions: -1
     position_biased_input: false
@@ -83,13 +83,12 @@ model:
     num_hidden_layers: 6
     type_vocab_size: 0
     vocab_size: 32000
-  # torch_dtype: bfloat16
 
 trainer:
   evaluation_strategy: steps
-  per_device_train_batch_size: 64
-  per_device_eval_batch_size: 64
-  gradient_accumulation_steps: 32
+  per_device_train_batch_size: 128
+  per_device_eval_batch_size: 128
+  gradient_accumulation_steps: 1
   learning_rate: 6.0e-4
   weight_decay: 0.01
   adam_beta1: 0.9
@@ -98,7 +97,7 @@ trainer:
   max_grad_norm: 1.0
   max_steps: 500
   lr_scheduler_type: linear
-  warmup_steps: 10
+  warmup_steps: 100
   log_level: warning
   logging_strategy: steps
   logging_steps: 10
@@ -115,10 +114,10 @@ trainer:
   load_best_model_at_end: true
   metric_for_best_model: loss
   greater_is_better: false
-  optim: adamw_torch_fused
+  optim: adamw_torch
   group_by_length: true
   report_to: wandb
-  gradient_checkpointing: false
+  gradient_checkpointing: true
   full_determinism: false
   torch_compile: true
 
