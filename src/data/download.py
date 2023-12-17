@@ -43,7 +43,9 @@ def download_dataset(
             # Sample 1GB of data from each train dataset
             dataset = dataset_dict_["train"]
             sample_size = 1024**3 / get_train_dataset_size(dataset_name)
-            sampled_dataset, _ = dataset.train_test_split(train_size=sample_size, shuffle=True, seed=seed).values()
+            sampled_dataset, _ = dataset.train_test_split(
+                train_size=sample_size, shuffle=True, seed=seed, load_from_cache_file=False
+            ).values()
             sampled_datasets.append(sampled_dataset)
         dataset_dict["train"] = datasets.concatenate_datasets(sampled_datasets, split=datasets.Split.TRAIN)
     else:
@@ -85,7 +87,7 @@ def download_wikipedia(seed: int) -> DatasetDict:
 
         dataset_dict = DatasetDict()
         dataset_dict["train"], dataset_dict["validation"] = dataset.train_test_split(
-            test_size=5000, seed=seed
+            test_size=5000, seed=seed, load_from_cache_file=False
         ).values()
 
         dataset_dict.save_to_disk("data/filtered/wikipedia", num_proc=cpu_count())
@@ -106,7 +108,7 @@ def download_cc100(seed: int) -> DatasetDict:
 
         dataset_dict = DatasetDict()
         dataset_dict["train"], dataset_dict["validation"] = dataset.train_test_split(
-            test_size=5000, seed=seed
+            test_size=5000, seed=seed, load_from_cache_file=False
         ).values()
 
         dataset_dict.save_to_disk("data/filtered/cc100", num_proc=cpu_count())
@@ -141,7 +143,7 @@ def download_oscar(seed: int) -> DatasetDict:
 
         dataset_dict = DatasetDict()
         dataset_dict["train"], dataset_dict["validation"] = dataset.train_test_split(
-            test_size=5000, seed=seed
+            test_size=5000, seed=seed, load_from_cache_file=False
         ).values()
 
         dataset_dict.save_to_disk("data/filtered/oscar", num_proc=cpu_count())

@@ -6,7 +6,7 @@ dataset_names:
   - wikipedia
 
 sentencepiece:
-  model_type: unigram
+  model_type: bpe
   vocab_size: 32000
   character_coverage: 0.9995
   shuffle_input_sentence: true
