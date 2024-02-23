@@ -57,7 +57,17 @@ def is_not_footer_header_noisy_for_oscar() -> Callable[[dict[str, Any]], list[bo
 
 
 def remove_wikipedia_footnote() -> Callable[[dict[str, list[Any]]], dict[str, list[Any]]]:
-    footnote_sections: list[str] = ["脚注", "関連項目", "日本国内の関連項目", "出典", "出典・脚注", "参照", "外部リンク", "参考文献", "その他関連事項"]
+    footnote_sections: list[str] = [
+        "脚注",
+        "関連項目",
+        "日本国内の関連項目",
+        "出典",
+        "出典・脚注",
+        "参照",
+        "外部リンク",
+        "参考文献",
+        "その他関連事項",
+    ]
     footnote_regex = regex.compile(rf"\n({'|'.join(footnote_sections)})\s*\n")
 
     def remove(text: str) -> str:

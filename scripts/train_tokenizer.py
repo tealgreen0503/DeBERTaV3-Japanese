@@ -129,10 +129,7 @@ def get_post_processor(tokenizer: Tokenizer) -> processors.PostProcessor:
     return processors.TemplateProcessing(
         single="[CLS]:0 $A:0 [SEP]:0",
         pair="[CLS]:0 $A:0 [SEP]:0 $B:1 [SEP]:1",
-        special_tokens=[
-            ("[CLS]", tokenizer.token_to_id("[CLS]")),
-            ("[SEP]", tokenizer.token_to_id("[SEP]")),
-        ],
+        special_tokens=[("[CLS]", tokenizer.token_to_id("[CLS]")), ("[SEP]", tokenizer.token_to_id("[SEP]"))],
     )
 
 

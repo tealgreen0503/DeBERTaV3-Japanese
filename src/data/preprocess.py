@@ -4,10 +4,7 @@ from itertools import chain
 from typing import Any
 
 import pysbd
-from transformers import (
-    BatchEncoding,
-    PreTrainedTokenizerFast,
-)
+from transformers import BatchEncoding, PreTrainedTokenizerFast
 from transformers.tokenization_utils_base import EncodingFast
 
 

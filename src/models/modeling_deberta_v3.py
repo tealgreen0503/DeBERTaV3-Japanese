@@ -167,8 +167,7 @@ class DebertaV3ForPreTraining(DebertaV2PreTrainedModel):
             )
 
         set_embeddings_weight_added_delta_as_parameter(
-            self.discriminator.deberta.embeddings.word_embeddings,
-            self.generator.deberta.embeddings.word_embeddings,
+            self.discriminator.deberta.embeddings.word_embeddings, self.generator.deberta.embeddings.word_embeddings
         )
         if self.config.position_biased_input:
             set_embeddings_weight_added_delta_as_parameter(
@@ -296,10 +295,7 @@ class DebertaV3ForReplacedTokenDetection(DebertaV2PreTrainedModel):
             return ((loss, *output)) if loss is not None else output
 
         return DebertaV3ForPreTrainingOutput(
-            loss=loss,
-            logits=logits,
-            hidden_states=outputs.hidden_states,
-            attentions=outputs.attentions,
+            loss=loss, logits=logits, hidden_states=outputs.hidden_states, attentions=outputs.attentions
         )
 
 
