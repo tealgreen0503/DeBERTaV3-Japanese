@@ -43,7 +43,7 @@ build-backend = "poetry.core.masonry.api"
 [tool.ruff]
 line-length = 119
 indent-width = 4
-target-version = "py311"
+target-version = "py312"
 
 [tool.ruff.format]
 skip-magic-trailing-comma = true
@@ -57,7 +57,7 @@ fixable = ["ALL"]
 split-on-trailing-comma=false
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.12"
 ignore_missing_imports = true
 check_untyped_defs = true
 disallow_untyped_defs = true
